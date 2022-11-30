@@ -1,0 +1,7 @@
+/.gradle/
+/.idea/
+build
+/mcmapper-backend.jar
+/kotlin-js-store/
+/js/
+/client/webpack.config.d/proxy.js

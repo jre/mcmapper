@@ -1,0 +1,6 @@
+{
+    "worlds": {
+	"example": "example-world.json"
+    },
+    "default": "example"
+}

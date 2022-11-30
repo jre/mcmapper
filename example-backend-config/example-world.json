@@ -1,0 +1,23 @@
+{
+    "path": "/path/to/minecraft/server/world",
+    "label": "Example minecraft world",
+    "defaultMap": "overworld",
+
+    "maps": {
+	"overworld": {"scale":3, "dimension":"minecraft:overworld", "label": "Overworld", "routes":true},
+	"end": {"scale":3, "dimension":"minecraft:the_end", "label": "The End"}
+    },
+
+    "nodes": {
+	"spawn":         {"type":"gate", "x":0,   "z":0,    "l":"Spawn\npoint"},
+	"east_junction": {"type":"stop", "x":100, "z":0,    "l":"East\njunction"},
+	"home":          {"type":"gate", "x":200, "z":-250, "l":"Home"},
+	"nether_fort":   {"type":"poi",  "x":80,  "z":50,   "l":"Nether\nfortress"}
+    },
+
+    "routes": [
+	["spawn", "east_junction"],
+	["east_junction", "x=home", "home"],
+	["east_junction", "z=nether_fort", "nether_fort"]
+    ]
+}
