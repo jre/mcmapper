@@ -1,11 +1,14 @@
 package net.joshe.mcmapper
 
+import io.ktor.http.*
+import io.ktor.util.date.GMTDate
 import java.awt.image.BufferedImage
 import java.awt.image.IndexColorModel
-import java.awt.image.RenderedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.imageio.ImageIO
-import kotlin.math.pow
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.joshe.mcmapper.metadata.*
@@ -17,14 +20,8 @@ class WorldFiles(private val baseDir: File, val worldId: String) {
     private fun qualify(parts: List<String>) = File(baseDir, parts.joinToString(File.separator))
 
     fun getTilePngFile(id: Int) = qualify(WorldPaths.getTileBitmapPath(worldId, id))
-    fun getTileMetaFile(map: String, pos: Pair<Int,Int>)
-            = qualify(WorldPaths.getTileMetadataPath(worldId, map, pos))
-    fun getMapMetaFile(map: String) = qualify(WorldPaths.getMapMetadataPath(worldId, map))
     fun getWorldMetaFile() = qualify(WorldPaths.getWorldMetadataPath(worldId))
-    fun getRoutesFile() = qualify(WorldPaths.getWorldRoutesPath(worldId))
 }
-
-fun scaleFactor(scale: Int) = 2.0.pow(scale).toInt()
 
 private var colorModel: IndexColorModel? = null
 
@@ -39,23 +36,33 @@ fun getTileColorModel() : IndexColorModel {
 class ConverterTile(
     val scale: Int,
     val dimension: String,
-    val explored: Int,
     val t: TileMetadata,
-    private val rawImage: ByteArray,
-) {
-    fun getPosition() : Pair<Int,Int> {
-        val span = mapTilePixels * scaleFactor(scale)
-        val roundedX = if (t.x < 0) t.x - span else t.x + span
-        val roundedZ = if (t.z < 0) t.z - span else t.z + span
-        return Pair(roundedX / span, roundedZ / span)
-    }
+    val srcModified: GMTDate,
+    val pngData: ByteArray?,
+)
 
-    fun getImage() : RenderedImage {
-        val img = BufferedImage(mapTilePixels, mapTilePixels, BufferedImage.TYPE_BYTE_INDEXED, getTileColorModel())
-        img.raster.setPixels(0, 0, mapTilePixels, mapTilePixels, rawImage.map{it.toInt()}.toIntArray())
-        return img
-    }
+fun getTilePos(pos: Position, scale: Int) : TilePos {
+    val span = mapTilePixels * scaleFactor(scale)
+    val roundedX = if (pos.x < 0) pos.x - span else pos.x + span
+    val roundedZ = if (pos.z < 0) pos.z - span else pos.z + span
+    return TilePos(roundedX / span, roundedZ / span)
+}
 
+fun MapMetadata.converterTile(tile: TileMetadata, srcModified: GMTDate) = ConverterTile(
+    scale = scale,
+    dimension = dimension,
+    t = tile,
+    pngData = null,
+    srcModified = srcModified,
+)
+
+fun getTilePngData(rawImage: ByteArray) : ByteArray {
+    val img = BufferedImage(mapTilePixels, mapTilePixels, BufferedImage.TYPE_BYTE_INDEXED, getTileColorModel())
+    img.raster.setPixels(0, 0, mapTilePixels, mapTilePixels, rawImage.map { it.toInt() }.toIntArray())
+    return ByteArrayOutputStream().let { out ->
+        ImageIO.write(img, "PNG", out)
+        out.toByteArray()
+    }
 }
 
 fun WorldConf.findMap(tile: ConverterTile) : String? {
@@ -74,88 +81,138 @@ fun File.withTempFile(writer: (File) -> Unit) {
         tmp.renameTo(this)
     } catch (e: Throwable) {
         tmp.delete()
+        throw e
     }
 }
 
-fun readTiles(conf: WorldConf, srcDataPath: File): Map<String,Map<Pair<Int,Int>,ConverterTile>> {
+fun readTiles(conf: WorldConf, srcDataPath: File, paths: WorldFiles, oldMeta: WorldMetadata?)
+        : Map<String,Map<TilePos,ConverterTile>> {
     val count = readIdcounts(srcDataPath)
-    val tiles = conf.maps.mapValues { mutableMapOf<Pair<Int,Int>,ConverterTile>() }
+    val tiles = conf.maps.mapValues { mutableMapOf<TilePos,ConverterTile>() }
+    val idCache = mutableMapOf<Int, ConverterTile>()
+
+    oldMeta?.maps?.values?.forEach { map ->
+        tiles[map.mapId]?.putAll(map.tiles.entries.map { (pos, tile) ->
+            Pair(pos, map.converterTile(tile, mapTileSrcFile(srcDataPath, tile.id).lastModifiedGMTDate()))
+        })
+        tiles[map.mapId]?.forEach { (_, tile) ->
+            idCache[tile.t.id] = tile
+        }
+    }
 
     for (id in 0 .. count) {
-        val meta = readMap(srcDataPath, id) ?: continue
+        val meta = readMap(srcDataPath, id, paths, idCache) ?: continue
         val mapKey = conf.findMap(meta) ?: continue
-        val pos = meta.getPosition()
-	// XXX should use file mod date as a tiebreaker here
-        if ((tiles.getValue(mapKey)[pos]?.explored ?: -1) < meta.explored)
-            tiles.getValue(mapKey)[pos] = meta
+        val duplicate = tiles.getValue(mapKey)[meta.t.pos]
+        if (duplicate == null || duplicate.t.id == meta.t.id || duplicate.t.hidden > meta.t.hidden ||
+            (duplicate.t.hidden == meta.t.hidden && duplicate.srcModified < meta.srcModified))
+            tiles.getValue(mapKey)[meta.t.pos] = meta
     }
 
     return tiles
 }
 
-fun writeTiles(paths: WorldFiles, tiles: Map<String,Map<Pair<Int,Int>,ConverterTile>>) {
-    for ((mapKey, map) in tiles.entries)
-        for ((coords, tile) in map.entries) {
-            paths.getTilePngFile(tile.t.id).withTempFile { pngFile ->
-                ImageIO.write(tile.getImage(), "PNG", pngFile)
+fun writeTilePngs(paths: WorldFiles, converterTiles: Map<String,Map<TilePos,ConverterTile>>)
+        : Map<String, Map<TilePos, TileMetadata>> {
+    var tileCount = 0
+    var updatedTiles = 0
+    val newTiles = converterTiles.mapValues { (_, map) ->
+        map.mapValues { (_, tile) ->
+            tileCount++
+            if (tile.pngData == null)
+                tile.t
+            else {
+                updatedTiles++
+                val tilePngFile = paths.getTilePngFile(tile.t.id)
+                tilePngFile.withTempFile { it.writeBytes(tile.pngData) }
+                tile.t.copy(modified = tilePngFile.lastModifiedGMTDate())
             }
-            paths.getTileMetaFile(mapKey, coords).withTempFile { metaFile ->
-                metaFile.writeText(Json.encodeToString(tile.t))
-            }
-        }
-}
-
-fun writeMapMetadata(conf: WorldConf, paths: WorldFiles, tiles: Map<String,Map<Pair<Int,Int>,ConverterTile>>) {
-    for ((mapKey, mapConf) in conf.maps.entries) {
-        val coords = tiles.getValue(mapKey).keys
-        val mapMeta = MapMetadata(
-            mapId = mapKey,
-            label = mapConf.label,
-            dimension = mapConf.dimension,
-            tileSize = scaleFactor(mapConf.scale) * mapTilePixels,
-            showRoutes = mapConf.routes,
-            minX = coords.minOfOrNull{(x,_) -> x} ?: 0,
-            maxX = coords.maxOfOrNull{(x,_) -> x} ?: 0,
-            minZ = coords.minOfOrNull{(_,z) -> z} ?: 0,
-            maxZ = coords.maxOfOrNull{(_,z) -> z} ?: 0,
-        )
-        paths.getMapMetaFile(mapKey).withTempFile { metaFile ->
-            metaFile.writeText(Json.encodeToString(mapMeta))
         }
     }
+    println("wrote ${updatedTiles}/${tileCount} tile images")
+    return newTiles
 }
 
-fun convertWorld(conf: WorldConf, paths: WorldFiles) {
+fun createMapMetadata(conf: WorldConf, tiles: Map<String,Map<TilePos,TileMetadata>>)
+        = conf.maps.mapValues { (mapKey, mapConf) ->
+    val mapTiles = tiles.getValue(mapKey)
+    val coords = mapTiles.keys
+    MapMetadata(
+        mapId = mapKey,
+        label = mapConf.label,
+        dimension = mapConf.dimension,
+        scale = mapConf.scale,
+        showRoutes = mapConf.routes,
+        minPos = TilePos(coords.minOfOrNull{(x,_) -> x} ?: 0, coords.minOfOrNull{(_,z) -> z} ?: 0),
+        maxPos = TilePos(coords.maxOfOrNull{(x,_) -> x} ?: 0, coords.maxOfOrNull{(_,z) -> z} ?: 0),
+        tiles = mapTiles,
+    )
+}
+
+fun convertWorld(conf: WorldConf, paths: WorldFiles, oldMeta: WorldMetadata?) : WorldMetadata {
     val srcDataPath = File(conf.path, "data")
-    val tiles = readTiles(conf, srcDataPath)
+    val converterTiles = readTiles(conf, srcDataPath, paths, oldMeta)
+    val worldTiles = writeTilePngs(paths, converterTiles)
 
-    writeTiles(paths, tiles)
-    writeMapMetadata(conf, paths, tiles)
+    val worldMetaFile = paths.getWorldMetaFile()
+    val newMeta = WorldMetadata(
+        worldId = paths.worldId,
+        label = conf.label,
+        defaultMap = conf.defaultMap,
+        maps = createMapMetadata(conf, worldTiles),
+        routes = RoutesMetadata(nodes = conf.nodes, paths = conf.routePaths),
+    )
+    if (oldMeta == newMeta)
+        println("world metadata unchanged, not writing ${worldMetaFile}")
+    else
+        worldMetaFile.withTempFile { metaFile ->
+            println("writing updated world metadata to ${worldMetaFile}")
+            metaFile.writeText(Json.encodeToString(newMeta))
+        }
 
-    paths.getRoutesFile().withTempFile { metaFile ->
-        metaFile.writeText(Json.encodeToString(RoutesMetadata(
-            nodes = conf.nodes,
-            paths = conf.routePoints,
-        )))
-    }
-    paths.getWorldMetaFile().withTempFile { metaFile ->
-        metaFile.writeText(Json.encodeToString(WorldMetadata(
-            worldId = paths.worldId,
-            label = conf.label,
-            defaultMap = conf.defaultMap,
-            maps = conf.maps.mapValues { (_, map) -> map.label })))
-    }
+    return newMeta
 }
+
+inline fun <reified T> readOldMeta(path: File, label: String) : T? =
+    if (!path.exists()) {
+        println("existing ${label} metadata file not found at ${path}")
+        null
+    } else try {
+        Json.decodeFromString<T>(path.readText())
+    } catch (e: SerializationException) {
+        println("failed to deserialize existing ${label} metadata at ${path}: ${e}")
+        null
+    }
+
 
 fun convertAllWorlds(allWorlds: AllWorldsConf, rootDir: File) {
     // XXX all json maps should be written with keys sorted
+    val worldStubs = mutableMapOf<String, RootMetadata.WorldStub>()
+    val rootMetaFile = getRootMetaFile(rootDir)
+    val oldRootMeta = readOldMeta<RootMetadata>(rootMetaFile, "root")
+
     for ((key, conf) in allWorlds.worlds) {
-        println("writing world \"${key}\"")
-        convertWorld(conf, WorldFiles(rootDir, key))
+        val paths = WorldFiles(rootDir, key)
+        val worldMetaFile = paths.getWorldMetaFile()
+        val oldWorldMeta = readOldMeta<WorldMetadata>(worldMetaFile, "world")
+
+        println("converting world \"${key}\"")
+        val worldMeta = convertWorld(conf, paths, oldWorldMeta)
+        worldStubs[key] = RootMetadata.WorldStub(
+            label = worldMeta.label,
+            modified = worldMetaFile.lastModifiedGMTDate(),
+        )
     }
-    getRootMetaFile(rootDir).withTempFile { metaFile ->
-        metaFile.writeText(Json.encodeToString(RootMetadata(
-            defaultWorld = allWorlds.defaultWorld,
-            worlds = allWorlds.worlds.mapValues { (_, world) -> world.label })))
-    }
+
+    val newRootMeta = RootMetadata(
+        defaultWorld = allWorlds.defaultWorld,
+        worlds = worldStubs,
+    )
+    if (oldRootMeta == newRootMeta)
+        println("root metadata unchanged, not writing ${rootMetaFile}")
+    else
+        rootMetaFile.withTempFile { metaFile ->
+            println("writing updated root metadata to ${rootMetaFile}")
+            metaFile.writeText(Json.encodeToString(newRootMeta))
+        }
 }

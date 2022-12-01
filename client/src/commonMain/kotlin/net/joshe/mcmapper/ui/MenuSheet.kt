@@ -56,16 +56,17 @@ fun MenuSheetLayout(state: MenuSheetState, content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun MenuSheetButton(state: MenuSheetState, items: Map<String,String>, selectedKey: String?, noneSelected: String,
+fun MenuSheetButton(state: MenuSheetState, items: Iterable<Pair<String,String>>, selectedKey: String?, noneSelected: String,
                     onSelect: (String) -> Unit) {
     val scope = rememberCoroutineScope()
-    if (items.isEmpty())
+    val itemList = items.toList()
+    if (itemList.isEmpty())
         return
     OutlinedButton(onClick = {
-        state.items.value = items.keys.sorted().map { k -> Pair(k, items.getValue(k)) }
+        state.items.value = items.toList()
         state.onSelect = onSelect
         scope.launch { state.sheetState.show() }
     }) {
-        Text(text = items[selectedKey] ?: noneSelected)
+        Text(text = items.find { it.first == selectedKey }?.second ?: noneSelected)
     }
 }

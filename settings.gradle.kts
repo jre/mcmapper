@@ -26,6 +26,10 @@ dependencyResolutionManagement {
     }
 }
 
+// XXX to work around intellij limitations, you will need to
+// comment-out either the backend or client include to open this in
+// the ide
+
 include("backend")
 
 System.getProperty("os.name")?.let { os ->

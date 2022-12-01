@@ -10,6 +10,7 @@ plugins {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.nullicorn.nedit)
+    implementation(libs.ktor.client.core)
 }
 
 sourceSets {

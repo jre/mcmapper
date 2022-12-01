@@ -29,12 +29,12 @@ enum class BannerColor(val key: String, val color: Color) {
     }
 }
 
-fun TileMetadata.Icon.getImage() = when (this) {
-    is TileMetadata.Pointer -> getImage()
-    is TileMetadata.Banner -> getImage()
+fun Icon.getImage() = when (this) {
+    is PointerIcon -> getImage()
+    is BannerIcon -> getImage()
 }
 
-fun TileMetadata.Pointer.getImage(iconSize: Float = 10f) = ImageVector.Builder(
+fun PointerIcon.getImage(iconSize: Float = 10f) = ImageVector.Builder(
     defaultWidth = iconSize.dp,
     defaultHeight = iconSize.dp,
     viewportWidth = iconSize,
@@ -54,7 +54,7 @@ fun TileMetadata.Pointer.getImage(iconSize: Float = 10f) = ImageVector.Builder(
     }
 }.build()
 
-fun TileMetadata.Banner.getImage(iconSize: Float = 10f): ImageVector {
+fun BannerIcon.getImage(iconSize: Float = 10f): ImageVector {
     val fillColor = BannerColor.fromString(color).color
     val topWidth = iconSize * 0.875f
     val bannerWidth = iconSize * .375f

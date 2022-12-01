@@ -1,10 +1,13 @@
 package net.joshe.mcmapper
 
+import io.ktor.util.date.GMTDate
 import java.io.File
 import java.io.FileInputStream
 import me.nullicorn.nedit.NBTReader
 import me.nullicorn.nedit.type.NBTCompound
 import net.joshe.mcmapper.metadata.*
+
+fun File.lastModifiedGMTDate() = GMTDate(timestamp = lastModified())
 
 fun readIdcounts(mapDir: File): Int {
     val root = NBTReader.readFile(File(mapDir, "idcounts.dat"))
@@ -20,7 +23,7 @@ private val dimensionIds: Map<Int, String> = mapOf(
     1 to "minecraft:the_end"
 )
 
-private fun readTileMetadata(id: Int, tag: NBTCompound) : ConverterTile? {
+private fun readTileMetadata(id: Int, tag: NBTCompound, nbtModified: GMTDate, pngModified: GMTDate) : ConverterTile? {
     require("xCenter" in tag && "zCenter" in tag && "scale" in tag &&
             "dimension" in tag && "colors" in tag)
     if (tag.getInt("unlimitedTracking", 0) == 1)
@@ -31,16 +34,16 @@ private fun readTileMetadata(id: Int, tag: NBTCompound) : ConverterTile? {
         else
             dimensionIds.getOrDefault(dimensionId.toInt(), null)
     } ?: return null
-    val colors = tag.getByteArray("colors")
 
-    val icons = mutableListOf<TileMetadata.Icon>()
+    val icons = mutableListOf<Icon>()
     tag.getList("frames")?.forEach { frame ->
         if (frame is NBTCompound) {
             val x = frame.getNumber("Pos.X", null)
             val z = frame.getNumber("Pos.Z", null)
             val rot = frame.getInt("Rotation", 0)
             if (x != null && z != null)
-                icons.add(TileMetadata.Pointer(x = x.toInt(), z = z.toInt(), rotation = rot))
+                icons.add(PointerIcon(dimensionalPosition(dimension, x = x.toInt(), z = z.toInt()),
+                    rotation = rot))
         }
     }
     tag.getList("banners")?.forEach { banner ->
@@ -50,7 +53,8 @@ private fun readTileMetadata(id: Int, tag: NBTCompound) : ConverterTile? {
             val color = banner.getString("Color", null)
             val label = banner.getString("Name", "")
             if (x != null && z != null && color != null)
-                icons.add(TileMetadata.Banner(x = x.toInt(), z = z.toInt(), color = color, label = label))
+                icons.add(BannerIcon(dimensionalPosition(dimension, x = x.toInt(), z = z.toInt()),
+                    color = color, label = label))
         }
     }
 
@@ -58,22 +62,37 @@ private fun readTileMetadata(id: Int, tag: NBTCompound) : ConverterTile? {
     if (image.size != mapTilePixels * mapTilePixels)
         return null
 
+    val scale = tag.getInt("scale", 0)
+    val pos = getTilePos(dimensionalPosition(dimension,
+        x = tag.getInt("xCenter", 0),
+        z = tag.getInt("zCenter", 0)), scale)
+
     return ConverterTile(
         t = TileMetadata(
             id = id,
-            x = tag.getInt("xCenter", 0),
-            z = tag.getInt("zCenter", 0),
-            icons = icons),
-        rawImage = image,
-        scale = tag.getInt("scale", 0),
+            pos = pos,
+            icons = icons,
+            modified = pngModified,
+            hidden = image.count { it == unexploredColor },
+        ),
+        pngData = if (pngModified > nbtModified) null else getTilePngData(image),
+        scale = scale,
         dimension = dimension,
-        explored = colors.size - colors.count{it == unexploredColor })
+        srcModified = nbtModified,
+    )
 }
 
-fun readMap(mapDir: File, id: Int) : ConverterTile? {
+fun mapTileSrcFile(mapDir: File, id: Int) = File(mapDir, "map_${id}.dat")
+
+fun readMap(mapDir: File, id: Int, paths: WorldFiles, tileCache: Map<Int, ConverterTile>) : ConverterTile? {
     require(id >= 0)
-    val stream = FileInputStream(File(mapDir, "map_${id}.dat"))
+    val pngMod = paths.getTilePngFile(id).lastModifiedGMTDate()
+    val mapFile = mapTileSrcFile(mapDir, id)
+    val nbtMod = mapFile.lastModifiedGMTDate()
+    if (nbtMod < pngMod && id in tileCache)
+        return tileCache.getValue(id)
+    val stream = FileInputStream(mapFile)
     val root = NBTReader.read(stream)
     stream.close()
-    return readTileMetadata(id, root.getCompound("data"))
+    return readTileMetadata(id, root.getCompound("data"), nbtMod, pngMod)
 }

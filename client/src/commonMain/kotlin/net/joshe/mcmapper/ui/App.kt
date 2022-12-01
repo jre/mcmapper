@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -14,9 +13,9 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.*
+import io.ktor.http.*
 import kotlinx.coroutines.launch
-import net.joshe.mcmapper.data.*
-import net.joshe.mcmapper.data.State
+import net.joshe.mcmapper.data.MapState
 import net.joshe.mcmapper.metadata.*
 import org.jetbrains.skia.Image as SkiaImage
 
@@ -43,25 +42,19 @@ worth trying a canvas? what existing element has a viewport?
   TODO
     web version without wasm support
     handle window resizes in web
-    detect changed tiles and bypass browser cache
-      metadata too
+    automatically detect changed root metadata while still allowing manual reload
     fix scrolling
       you need to click inside the original viewport to drag it?
       you can't click outside the map bounds to drag
-    draw routes
+    don't clip routes to map tiles
     zooming
-    merge mcmapper server code
-    handle merging multiple sets of worlds on the webserver
-    untangle State class
-      move caching into composables
-      move fetching functions into Client
-      simplify State class and eliminate if possible
     persist options on web via cookies or browser local storage
     persist selected map
     determine dark mode based on time of day if unspecified
       expire manual dark mode after 12 hours
     show world coordinates under the mouse
     click on icons to see location
+    click on route node to see routes ending there and distances
     show a single menu for selecting worlds and maps
     show a single menu for toggling map options
  */
@@ -76,16 +69,16 @@ data class DisplayOptions(
 
 @Composable
 fun App(rootUrl: String,
-        windowSizeState: androidx.compose.runtime.State<DpSize>,
+        windowSizeState: State<DpSize>,
         options: DisplayOptions,
 ) {
     val baseUrl = rootUrl.removeSuffix("/") + "/data"
-    val mapState = remember(baseUrl) { State(baseUrl) }
+    val mapState = remember(baseUrl) { MapState(baseUrl) }
     val scaffoldState = rememberScaffoldState()
     val menuSheetState = rememberMenuSheetState()
     val scope = rememberCoroutineScope()
 
-    if (mapState.worlds.value.isEmpty())
+    if (mapState.worldInfo.value.isEmpty())
         scope.launch { mapState.loadRootData() }
 
     MaterialTheme(colors = if (options.darkMode.value == true) darkColors() else lightColors()) {
@@ -94,26 +87,15 @@ fun App(rootUrl: String,
                 scaffoldState = scaffoldState,
                 bottomBar = {
                     BottomAppBar {
-                        MenuSheetButton(
-                            state = menuSheetState,
-                            items = mapState.worlds.value,
-                            selectedKey = mapState.currentMap.value.worldId,
-                            noneSelected = "Select a world",
-                            onSelect = { selection ->
-                                scope.launch { mapState.selectWorld(selection) }
-                            })
-                        MenuSheetButton(
-                            state = menuSheetState,
-                            items = mapState.worldMaps.value,
-                            selectedKey = mapState.currentMap.value.mapId,
-                            noneSelected = "Select a map",
-                            onSelect = { selection ->
-                                scope.launch { mapState.selectMap(selection) }
-                            })
+                        WorldSelectionButton(menuSheetState, mapState)
+                        MapSelectionButton(menuSheetState, mapState)
                         DarkModeButton(options.darkMode)
                         ShowTileIdsButton(options.tileIds)
                         ShowPointersButton(options)
                         ShowRoutesButton(options.routes)
+                        OutlinedButton(onClick = { mapState.currentWorld.value?.worldId?.let {
+                            scope.launch { mapState.reloadWorldCache(it) }
+                        }}) { Text(text = "Reload") }
                     }
                 }) {
                 MapGrid(
@@ -126,6 +108,33 @@ fun App(rootUrl: String,
 }
 
 // https://stackoverflow.com/questions/67744381/jetpack-compose-scaffold-modal-bottom-sheet
+
+@Composable
+fun WorldSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
+    val scope = rememberCoroutineScope()
+    MenuSheetButton(
+        state = menuSheetState,
+        items = mapState.worldInfo.value.entries.sortedBy{it.value.label}.map{Pair(it.key,it.value.label)},
+        selectedKey = mapState.currentWorld.value?.worldId,
+        noneSelected = "Select a world",
+        onSelect = { selection ->
+            scope.launch { mapState.selectWorld(selection) }
+        })
+}
+
+@Composable
+fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
+    val scope = rememberCoroutineScope()
+    MenuSheetButton(
+        state = menuSheetState,
+        items = mapState.currentWorld.value?.maps?.entries?.sortedBy { it.value.label }?.map { Pair(it.key, it.value.label) }
+            ?: emptyList(),
+        selectedKey = mapState.currentMap.value?.mapId,
+        noneSelected = "Select a map",
+        onSelect = { selection ->
+            scope.launch { mapState.selectMap(selection) }
+        })
+}
 
 @Composable
 fun DarkModeButton(darkMode: MutableState<Boolean?>) {
@@ -163,15 +172,10 @@ fun ShowRoutesButton(state: MutableState<Boolean>) {
         Text(text = if (state.value) "Hide Routes" else "Show Routes")
     }
 }
-@Composable
-fun MapTileBox(mapState: State, pos: TilePos, content: @Composable (TileMetadata) -> Unit) {
-    var meta: TileMetadata? by remember(mapState.currentMap) { mutableStateOf(null) }
-    meta?.also { content(it) } ?: LaunchedEffect(mapState.currentMap) { meta = mapState.loadTileMetadata(pos) }
-}
 
 @Composable
-fun MapTilePixmap(mapState: State, tile: TileMetadata, modifier: Modifier = Modifier) {
-    var pixmap: ByteArray? by remember(mapState.currentMap) { mutableStateOf(null) }
+fun MapTilePixmap(mapState: MapState, tile: TileMetadata, modifier: Modifier = Modifier) {
+    var pixmap: ByteArray? by remember(mapState.currentWorld.value, tile) { mutableStateOf(null) }
     val mod = modifier.requiredSize(width = mapTilePixels.dp, height = mapTilePixels.dp)
 
     if (pixmap != null)
@@ -184,15 +188,15 @@ fun MapTilePixmap(mapState: State, tile: TileMetadata, modifier: Modifier = Modi
             contentDescription = "${tile.id}",
             painter = ColorPainter(color = Color.Transparent),
             modifier = mod)
-        LaunchedEffect(mapState.currentMap) { pixmap = mapState.loadTilePixmap(tile) }
+        LaunchedEffect(mapState.currentWorld) { pixmap = mapState.loadTilePixmap(tile) }
     }
 }
 
 @Composable
-fun MapIcon(icon: TileMetadata.Icon, options: DisplayOptions, modifier: Modifier = Modifier) {
+fun MapIcon(icon: Icon, options: DisplayOptions, modifier: Modifier = Modifier) {
     if (when (icon) {
-            is TileMetadata.Pointer -> options.pointers.value
-            is TileMetadata.Banner -> options.banners.value
+            is PointerIcon -> options.pointers.value
+            is BannerIcon -> options.banners.value
         })
         Image(
             painter = rememberVectorPainter(image = icon.getImage()),
@@ -245,65 +249,60 @@ fun DpOffset.toIntOffset() = IntOffset(x.value.toInt(), y.value.toInt())
 
 @Composable
 fun MapGrid(
-    mapState: State,
+    mapState: MapState,
     options: DisplayOptions,
-    windowSizeState: androidx.compose.runtime.State<DpSize>,
+    windowSizeState: State<DpSize>,
 ) {
-    var routes by rememberSaveable(mapState.currentMap.value.worldId) {
-        mutableStateOf<RoutesMetadata?>(null) }
-    if (routes == null && !mapState.currentMap.value.worldId.isNullOrEmpty())
-        LaunchedEffect(mapState.currentMap.value.worldId) { routes = mapState.loadRoutes() }
-    val mapMeta = mapState.currentMap.value.params
-    if (mapMeta == null) {
+    val worldMeta = mapState.currentWorld.value
+    val mapMeta = mapState.currentMap.value
+    println("drawing map grid with world=${worldMeta?.worldId} map=${mapMeta?.mapId}")
+    if (worldMeta == null || mapMeta == null) {
         Text("No map loaded")
         return
     }
-    var pos by remember(mapMeta, windowSizeState) {
+    var pos by remember(worldMeta.worldId, mapMeta.mapId, windowSizeState.value) {
         mutableStateOf(windowSizeState.value.center - mapMeta.mapSize().center)
     }
 
     // XXX if I put the pointerInput modifier here then it stops working after I switch maps and back
     MapLayout(
         map = mapMeta,
-        routes = if (mapMeta.showRoutes && options.routes.value) routes else null,
+        routes = if (mapMeta.showRoutes && options.routes.value) worldMeta.routes else null,
         modifier = Modifier.offset { pos.toIntOffset() },
     ) {
-        for (z in mapMeta.minZ .. mapMeta.maxZ) {
+        for (z in mapMeta.minPos.z .. mapMeta.maxPos.z) {
             if (z == 0)
                 continue
-            for (x in mapMeta.minX..mapMeta.maxX) {
+            for (x in mapMeta.minPos.x ..mapMeta.maxPos.x) {
                 if (x == 0)
                     continue
+                mapMeta.tiles[TilePos(x=x, z=z)]?.let { tile ->
                     key(x, z) {
-                        MapTileBox(mapState = mapState, pos = TilePos(x, z)) { tile ->
-                            key(x, z) {
-                                MapTilePixmap(mapState = mapState, tile = tile,
-                                    modifier = Modifier
-                                        .tilePosition(TilePos(x, z))
-                                        .pointerInput(Unit) {
-                                            detectDragGestures { change, dragAmount ->
-                                                change.consume()
-                                                pos += dragAmount
-                                            }
-                                        })
-                            }
-                            if (options.tileIds.value)
-                                MapId(tile, Modifier.tileIdPosition(TilePos(x, z)))
-                            tile.icons.forEachIndexed { idx, icon ->
-                                key(x, z, idx) {
-                                    MapIcon(icon, options = options, modifier = Modifier.iconPosition(icon))
-                                }
-                            }
+                        MapTilePixmap(mapState = mapState, tile = tile,
+                            modifier = Modifier
+                                .tilePosition(TilePos(x, z))
+                                .pointerInput(Unit) {
+                                    detectDragGestures { change, dragAmount ->
+                                        change.consume()
+                                        pos += dragAmount
+                                    }
+                                })
+                    }
+                    if (options.tileIds.value)
+                        MapId(tile, Modifier.tileIdPosition(TilePos(x, z)))
+                    tile.icons.forEachIndexed { idx, icon ->
+                        key(x, z, idx) {
+                            MapIcon(icon, options = options, modifier = Modifier.iconPosition(icon))
                         }
                     }
+                }
             }
         }
-        if (mapMeta.showRoutes && options.routes.value)
-            routes?.let { routes ->
-                for (node in routes.nodes.values)
-                    //if (NetherPos(node.x, node.z).toMapLayoutPos(mapMeta).let { it.x >= 0 && it.y >= 0 })
-                    MapRouteNode(node, modifier = Modifier.routeNodePosition(node))
-                MapRoutePaths(routes, mapMeta, modifier = Modifier.routeGlobalOverlayPosition())
-            }
+        if (mapMeta.showRoutes && options.routes.value) {
+            for (node in worldMeta.routes.nodes.values)
+            //if (NetherPos(node.x, node.z).toMapLayoutPos(mapMeta).let { it.x >= 0 && it.y >= 0 })
+                MapRouteNode(node, modifier = Modifier.routeNodePosition(node))
+            MapRoutePaths(worldMeta.routes, mapMeta, modifier = Modifier.routeGlobalOverlayPosition())
+        }
     }
 }

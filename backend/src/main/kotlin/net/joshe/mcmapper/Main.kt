@@ -14,7 +14,6 @@ fun main(args: Array<String>) {
         System.err.println("usage: /path/to/json-config /path/to/output-directory")
         exitProcess(1)
     }
-    println("reading config from ${args[0]}")
-    println("writing data to ${args[1]}")
+    println("reading config from ${args[0]} and writing data to ${args[1]}")
     convertAllWorlds(readWorldsConf(File(args[0]).absoluteFile), File(args[1]).absoluteFile)
 }

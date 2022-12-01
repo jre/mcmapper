@@ -4,10 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.unit.dp
-import io.ktor.http.*
 import net.joshe.mcmapper.metadata.*
-import kotlin.math.max
-import kotlin.math.min
 
 fun RouteNode.getImage() = when (this) {
     is StopNode -> getImage()
@@ -62,12 +59,12 @@ fun getRoutesImage(routes: RoutesMetadata, map: MapMetadata) = map.mapSize().let
         viewportHeight = (maxPos.y - minPos.y).toFloat(),
     ).apply {
         for (routePath in routes.paths) {
-            require(routePath.size >= 2)
-            val startPos = NetherPos(routePath[0].x, routePath[0].z).toMapLayoutPos(map)
+            require(routePath.path.size >= 2)
+            val startPos = NetherPos(routePath.path[0].x, routePath.path[0].z).toMapLayoutPos(map)
             //println("start route with ${routePath.size} points at ${routePath[0]} -> ${startPos}")
             val pathBuilder = PathBuilder()
                 .moveTo(startPos.x.toFloat(), startPos.y.toFloat())
-            for (point in routePath.listIterator(1))
+            for (point in routePath.path.listIterator(1))
                 NetherPos(point.x, point.z).toMapLayoutPos(map).let { pos ->
                     //println("  to ${point} -> ${pos}")
                     pathBuilder.lineTo(pos.x.toFloat(), pos.y.toFloat())

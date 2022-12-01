@@ -12,8 +12,8 @@ import net.joshe.mcmapper.metadata.*
 
 fun MapMetadata.mapSize(/*routes: RoutesMetadata?*/) : DpSize {
     val base = DpSize(
-        ((maxX - minX) * mapTilePixels).dp,
-        ((maxZ - minZ) * mapTilePixels).dp)
+        ((maxPos.x - minPos.x) * mapTilePixels).dp,
+        ((maxPos.z - minPos.z) * mapTilePixels).dp)
     /*
     routes ?: return base
     val (routeMin, routeMax) = routes.getRange().let { (min, max) ->
@@ -22,12 +22,9 @@ fun MapMetadata.mapSize(/*routes: RoutesMetadata?*/) : DpSize {
     return base
 }
 
-fun RoutesMetadata.minPos() = NetherPos(minX, minZ)
-fun RoutesMetadata.maxPos() = NetherPos(maxX, maxZ)
+fun RoutesMetadata.minPos() = NetherPos(minPos.x, minPos.z)
+fun RoutesMetadata.maxPos() = NetherPos(maxPos.x, maxPos.z)
 
-data class TilePos(val x: Int, val z: Int)
-data class WorldPos(val x: Int, val z: Int)
-data class NetherPos(val x: Int, val z: Int)
 data class MapLayoutPos(val x: Int, val y: Int)
 
 private fun to0Based(value: Int, min: Int, skipOrigin: Int = 0)
@@ -36,16 +33,16 @@ private fun to0Based(value: Int, min: Int, skipOrigin: Int = 0)
 fun NetherPos.toWorldPos() = WorldPos(x = x * 8, z = z * 8)
 
 fun TilePos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-        x = to0Based(x, map.minX, skipOrigin = 1) * mapTilePixels,
-        y = to0Based(z, map.minZ, skipOrigin = 1) * mapTilePixels)
+        x = to0Based(x, map.minPos.x, skipOrigin = 1) * mapTilePixels,
+        y = to0Based(z, map.minPos.z, skipOrigin = 1) * mapTilePixels)
 
 fun WorldPos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-    x = (to0Based(x, map.minX * map.tileSize) / (map.tileSize / mapTilePixels)) + 10, // XXX
-    y = (to0Based(z, map.minZ * map.tileSize) / (map.tileSize / mapTilePixels)) + 10) // XXX
+    x = (to0Based(x, map.minPos.x * map.tileSize) / map.scaleFactor) + 10, // XXX
+    y = (to0Based(z, map.minPos.z * map.tileSize) / map.scaleFactor) + 10) // XXX
 
 fun NetherPos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-    x = (to0Based(x * 8, map.minX * map.tileSize) / (map.tileSize / mapTilePixels)) + 10, // XXX
-    y = (to0Based(z * 8, map.minZ * map.tileSize) / (map.tileSize / mapTilePixels)) + 10) // XXX
+    x = (to0Based(x * 8, map.minPos.x * map.tileSize) / map.scaleFactor) + 10, // XXX
+    y = (to0Based(z * 8, map.minPos.z * map.tileSize) / map.scaleFactor) + 10) // XXX
 
 enum class MapLayer(val zIndex: Float) {
     TILE(0f),
@@ -61,22 +58,22 @@ data class MapLayoutInfo(val pos: MapLayoutPos, val layer: MapLayer, val center:
 }
 
 class MapLayoutScope(private val map: MapMetadata, private val routes: RoutesMetadata?) {
-    fun Modifier.iconPosition(icon: TileMetadata.Icon) = this.then(
+    fun Modifier.iconPosition(icon: Icon) = this.then(
         MapLayoutInfo(
-        pos = WorldPos(icon.x, icon.z).toMapLayoutPos(map),
+        pos = WorldPos(icon.pos.x, icon.pos.z).toMapLayoutPos(map),
         layer = when(icon) {
-            is TileMetadata.Pointer -> MapLayer.POINTER
-            is TileMetadata.Banner -> MapLayer.BANNER
+            is PointerIcon -> MapLayer.POINTER
+            is BannerIcon -> MapLayer.BANNER
         },
         center = true),
     )
 
     fun Modifier.routeNodePosition(node: RouteNode): Modifier {
-        NetherPos(node.x, node.z).toMapLayoutPos(map).let {
-            println("route node at (x=${node.x}, z=${node.z}) -> ${it} \"${node.label.replace('\n', ' ')}\"")
+        NetherPos(node.pos.x, node.pos.z).toMapLayoutPos(map).let {
+            println("route node at (x=${node.pos.x}, z=${node.pos.z}) -> ${it} \"${node.label.replace('\n', ' ')}\"")
         }
         return then(
-            MapLayoutInfo(pos = NetherPos(node.x, node.z).toMapLayoutPos(map), layer = MapLayer.NODE, center = true)
+            MapLayoutInfo(pos = NetherPos(node.pos.x, node.pos.z).toMapLayoutPos(map), layer = MapLayer.NODE, center = true)
         )
     }
 
@@ -114,8 +111,8 @@ fun MapLayout(map: MapMetadata, routes: RoutesMetadata?,
             maxWidth = Constraints.Infinity,
             maxHeight = Constraints.Infinity,
         )
-        println("laying out map with (${constraints.maxHeight},${constraints.maxWidth}) ${constraints.hasBoundedHeight},${constraints.hasBoundedWidth} ${constraints.hasFixedWidth},${constraints.hasFixedHeight}")
-        println(" embiggening with with (${embiggen.maxHeight},${embiggen.maxWidth}) ${embiggen.hasBoundedHeight},${embiggen.hasBoundedWidth} ${embiggen.hasFixedWidth},${embiggen.hasFixedHeight}")
+        //println("laying out map with (${constraints.maxHeight},${constraints.maxWidth}) ${constraints.hasBoundedHeight},${constraints.hasBoundedWidth} ${constraints.hasFixedWidth},${constraints.hasFixedHeight}")
+        //println(" embiggening with with (${embiggen.maxHeight},${embiggen.maxWidth}) ${embiggen.hasBoundedHeight},${embiggen.hasBoundedWidth} ${embiggen.hasFixedWidth},${embiggen.hasFixedHeight}")
         layout(constraints.maxWidth, constraints.maxHeight) {
             for (item in measurables)
                 (item.parentData as MapLayoutInfo).let { li ->

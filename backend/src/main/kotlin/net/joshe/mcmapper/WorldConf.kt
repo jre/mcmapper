@@ -15,8 +15,11 @@ fun readWorldsConf(path: File) : AllWorldsConf {
         println("reading world \"${key}\" config - ${worldFile}")
         Json.decodeFromString(worldFile.readText())
     }
-    return AllWorldsConf(worlds = configs.filterValues { File(it.path).exists() },
-        defaultWorld = stub.default)
+    val existingWorlds = configs.filterValues { File(it.path).exists() }
+    return AllWorldsConf(
+        worlds = existingWorlds,
+        defaultWorld = if (stub.default in existingWorlds) stub.default else null,
+    )
 }
 
 fun File.ensureAbsolute(base: File) = if (isAbsolute) this else File(base, path)
@@ -32,7 +35,7 @@ data class StubWorldsConf(
     }
 }
 
-data class AllWorldsConf(val worlds: Map<String, WorldConf>, val defaultWorld: String)
+data class AllWorldsConf(val worlds: Map<String, WorldConf>, val defaultWorld: String?)
 
 @Serializable
 data class WorldConf(
@@ -50,23 +53,24 @@ data class WorldConf(
 
     init { require(defaultMap in maps) }
 
-    val routePoints = routes.map { routeSpec ->
-        val points = mutableListOf<Point>()
+    val routePaths = routes.map { routeSpec ->
+        require(routeSpec[0] in nodes && routeSpec.last() in nodes)
+        val points = mutableListOf<NetherPos>()
         routeSpec.forEach { item ->
             val prev = points.lastOrNull()
             points.add(
                 if (item.startsWith("x=#"))
-                    Point(item.substring(3).toInt(), prev!!.z)
+                    NetherPos(item.substring(3).toInt(), prev!!.z)
                 else if (item.startsWith("z=#") || item.startsWith("y=#"))
-                    Point(prev!!.x, item.substring(3).toInt())
+                    NetherPos(prev!!.x, item.substring(3).toInt())
                 else if (item.startsWith("x="))
-                    Point(nodes.getValue(item.substring(2)).x, prev!!.z)
+                    NetherPos(nodes.getValue(item.substring(2)).pos.x, prev!!.z)
                 else if (item.startsWith("z=") || item.startsWith("y="))
-                    Point(prev!!.x, nodes.getValue(item.substring(2)).z)
+                    NetherPos(prev!!.x, nodes.getValue(item.substring(2)).pos.z)
                 else
-                    nodes.getValue(item).getCoords()
+                    nodes.getValue(item).pos
             )
         }
-        points.toList()
+        RoutePath(first = routeSpec[0], last = routeSpec.last(), path = points)
     }
 }
