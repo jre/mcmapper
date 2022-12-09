@@ -10,7 +10,7 @@ import kotlinx.browser.window
 import net.joshe.mcmapper.ui.App
 import net.joshe.mcmapper.ui.DisplayOptions
 import org.jetbrains.skiko.wasm.onWasmReady
-import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.*
 
 private const val composeCanvasId = "ComposeTarget"
 
@@ -27,19 +27,27 @@ fun resizeCanvas(windowSize: MutableState<DpSize>) {
 }
 
 object PrefersColorScheme {
+    private const val supportQuery = "(prefers-color-scheme)"
     private const val darkQuery = "(prefers-color-scheme: dark)"
     private const val lightQuery = "(prefers-color-scheme: light)"
+    private const val darkreaderAttr = "data-darkreader-scheme"
 
     fun listen(handler: (Boolean?) -> Unit) {
-        if (window.matchMedia("(prefers-color-scheme)").matches)
+        if (window.matchMedia(supportQuery).matches)
             window.matchMedia(darkQuery).addEventListener("change", {
                 println("color preference changed: ${it}")
                 handler(prefersDark())
             })
+
+        MutationObserver { mutations, observer ->
+            println("root darkreader attribute changed")
+            handler(prefersDark())
+        }.observe(document.documentElement as Node, MutationObserverInit(attributeFilter = arrayOf(darkreaderAttr)))
     }
 
     fun prefersDark() : Boolean? {
-        return if (window.matchMedia(darkQuery).matches) true
+        return if (document.documentElement?.getAttribute(darkreaderAttr) == "dark") true
+        else if (window.matchMedia(darkQuery).matches) true
         else if (window.matchMedia(lightQuery).matches) false
         else null
     }
