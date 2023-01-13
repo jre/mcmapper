@@ -16,17 +16,10 @@ jobs:
           java-version: 17
           cache: gradle
       - name: Build backend jar
-        run: ./gradlew shadowJar
-      - name: Archive backend jar artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: mcmapper-backend
-          path: mcmapper-backend.jar
-      - name: Build web client
-        run: ./gradlew jsBrowserWebpack
+        run: ./gradlew shadowJar jsBrowserWebpack
       - name: Compress web client files
         run: |
-          find js/ -type f | while read file; do
+          find client/build/distributions/ -type f | while read file; do
             if [ ! -e "${file}.gz" -o "${file}" -ot "${file}.gz" ]; then
               gzip -9 -k "$file"
             fi
@@ -35,4 +28,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: mcmapper-web
-          path: js/
+          path: client/build/distributions/
+      - name: Archive backend jar artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mcmapper-backend
+          path: mcmapper-backend.jar

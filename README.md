@@ -13,8 +13,8 @@ backend JSON configs to your minecraft server. Look in the
 
 ### To build the webapp
 
-Run `./gradlew jsBrowserWebpack` then copy the contents of the `js/`
-directory to your web root.
+Run `./gradlew jsBrowserWebpack` then copy the contents of the
+`client/build/distributions/` directory to your web root.
 
 ### To use the webapp
 

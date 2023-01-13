@@ -14,9 +14,6 @@ kotlin {
     }
     js(IR) {
         browser {
-            distribution {
-                directory = File(rootDir, "js")
-            }
             runTask {
                 outputFileName = "${rootProject.name}.js"
             }
