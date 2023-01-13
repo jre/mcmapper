@@ -1,0 +1,29 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: gradle
+      - name: Build jar and js
+        run: ./gradlew shadowJar jsBrowserWebpack
+      - name: Archive backend jar artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mcmapper-backend
+          path: mcmapper-backend.jar
+      - name: Archive web client artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mcmapper-web
+          path: js/
