@@ -5,6 +5,12 @@ reads minecraft player-created maps and joins them together into a
 mosaic which is viewable in a browser. A Nether subway route overlay
 can be shown as well, if route and stop data has been configured.
 
+Prebuild development snapshots of the
+[backend tool](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-backend.zip)
+and
+[web client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-web.zip)
+are available.
+
 ### To build the backend tool
 
 Run `./gradlew shadowJar` and copy `mcmapper-backend.jar` and your
