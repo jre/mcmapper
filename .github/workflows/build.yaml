@@ -4,7 +4,7 @@ on:
     branches:
       - master
 jobs:
-  apk:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -16,7 +16,9 @@ jobs:
           java-version: 17
           cache: gradle
       - name: Build jar and js
-        run: ./gradlew shadowJar jsBrowserWebpack
+        run: |
+          ./gradlew shadowJar jsBrowserWebpack
+          find js -ls
       - name: Archive backend jar artifact
         uses: actions/upload-artifact@v3
         with:
