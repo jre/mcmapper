@@ -15,11 +15,11 @@ jobs:
           distribution: zulu
           java-version: 17
           cache: gradle
-      - name: Build backend jar
-        run: ./gradlew shadowJar jsBrowserWebpack
+      - name: Build backend jar and client js
+        run: ./gradlew shadowJar unpackSkikoWasmRuntimeJs jsBrowserWebpack
       - name: Compress web client files
         run: |
-          find client/build/distributions/ -type f | while read file; do
+          find js/ -type f | while read file; do
             if [ ! -e "${file}.gz" -o "${file}" -ot "${file}.gz" ]; then
               gzip -9 -k "$file"
             fi
@@ -28,7 +28,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: mcmapper-web
-          path: client/build/distributions/
+          path: js/
       - name: Archive backend jar artifact
         uses: actions/upload-artifact@v3
         with:
