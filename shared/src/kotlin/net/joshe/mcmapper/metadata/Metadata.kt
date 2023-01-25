@@ -14,6 +14,7 @@ import kotlin.math.pow
 
 const val magicId = "mcmapper root-level metadata"
 const val rootMetaVersion = 4
+const val worldMetaVersion = 4
 const val mapTilePixels = 128
 
 object WorldPaths {
@@ -116,8 +117,12 @@ data class WorldMetadata(
     val defaultMap: String,
     val label: String,
     val worldId: String,
+    @Required val version: Int = worldMetaVersion,
 ) {
-    init { require(defaultMap in maps) }
+    init {
+        require(version == worldMetaVersion)
+        require(defaultMap in maps)
+    }
 }
 
 @Serializable
