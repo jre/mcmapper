@@ -11,6 +11,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.nullicorn.nedit)
     implementation(libs.ktor.client.core)
+    testImplementation(kotlin("test"))
 }
 
 sourceSets {
@@ -19,6 +20,10 @@ sourceSets {
             srcDirs("../shared/src/kotlin")
         }
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.withType<KotlinCompile> {

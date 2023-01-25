@@ -17,6 +17,8 @@ jobs:
           cache: gradle
       - name: Build backend jar and client js
         run: ./gradlew shadowJar unpackSkikoWasmRuntimeJs jsBrowserWebpack
+      - name: Run tests
+        run: ./gradlew check
       - name: Compress web client files
         run: |
           find js/ -type f | while read file; do
