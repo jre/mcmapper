@@ -27,22 +27,21 @@ fun RoutesMetadata.maxPos() = NetherPos(maxPos.x, maxPos.z)
 
 data class MapLayoutPos(val x: Int, val y: Int)
 
-private fun to0Based(value: Int, min: Int, skipOrigin: Int = 0)
-        = if (min < 0 && value > 0) value - skipOrigin - min else value - min
+private fun to0Based(value: Int, min: Int) = value - min
 
 fun NetherPos.toWorldPos() = WorldPos(x = x * 8, z = z * 8)
 
 fun TilePos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-        x = to0Based(x, map.minPos.x, skipOrigin = 1) * mapTilePixels,
-        y = to0Based(z, map.minPos.z, skipOrigin = 1) * mapTilePixels)
+        x = to0Based(x, map.minPos.x) * mapTilePixels - mapTileOffset / map.scaleFactor,
+        y = to0Based(z, map.minPos.z) * mapTilePixels - mapTileOffset / map.scaleFactor)
 
 fun WorldPos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-    x = (to0Based(x, map.minPos.x * map.tileSize) / map.scaleFactor) + 10, // XXX
-    y = (to0Based(z, map.minPos.z * map.tileSize) / map.scaleFactor) + 10) // XXX
+    x = (to0Based(x, map.minPos.x * map.tileSize) / map.scaleFactor),
+    y = (to0Based(z, map.minPos.z * map.tileSize) / map.scaleFactor))
 
 fun NetherPos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
-    x = (to0Based(x * 8, map.minPos.x * map.tileSize) / map.scaleFactor) + 10, // XXX
-    y = (to0Based(z * 8, map.minPos.z * map.tileSize) / map.scaleFactor) + 10) // XXX
+    x = (to0Based(x * 8, map.minPos.x * map.tileSize) / map.scaleFactor),
+    y = (to0Based(z * 8, map.minPos.z * map.tileSize) / map.scaleFactor))
 
 enum class MapLayer(val zIndex: Float) {
     TILE(0f),

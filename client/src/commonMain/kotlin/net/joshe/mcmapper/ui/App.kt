@@ -271,11 +271,7 @@ fun MapGrid(
         modifier = Modifier.offset { pos.toIntOffset() },
     ) {
         for (z in mapMeta.minPos.z .. mapMeta.maxPos.z) {
-            if (z == 0)
-                continue
             for (x in mapMeta.minPos.x ..mapMeta.maxPos.x) {
-                if (x == 0)
-                    continue
                 mapMeta.tiles[TilePos(x=x, z=z)]?.let { tile ->
                     key(x, z) {
                         MapTilePixmap(mapState = mapState, tile = tile,

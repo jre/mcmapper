@@ -43,9 +43,11 @@ class ConverterTile(
 
 fun getTilePos(pos: Position, scale: Int) : TilePos {
     val span = mapTilePixels * scaleFactor(scale)
-    val roundedX = if (pos.x < 0) pos.x - span else pos.x + span
-    val roundedZ = if (pos.z < 0) pos.z - span else pos.z + span
-    return TilePos(roundedX / span, roundedZ / span)
+    val skewedX = pos.x + mapTileOffset
+    val skewedZ = pos.z + mapTileOffset
+    val kludgedX = if (skewedX < 0) skewedX - span - 1 else skewedX
+    val kludgedZ = if (skewedZ < 0) skewedZ - span - 1 else skewedZ
+    return TilePos(kludgedX / span, kludgedZ / span)
 }
 
 fun MapMetadata.converterTile(tile: TileMetadata, srcModified: GMTDate) = ConverterTile(

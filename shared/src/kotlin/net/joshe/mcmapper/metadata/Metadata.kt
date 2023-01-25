@@ -14,8 +14,9 @@ import kotlin.math.pow
 
 const val magicId = "mcmapper root-level metadata"
 const val rootMetaVersion = 4
-const val worldMetaVersion = 4
+const val worldMetaVersion = 5
 const val mapTilePixels = 128
+const val mapTileOffset = mapTilePixels / 2
 
 object WorldPaths {
     fun getTileBitmapPath(world: String, id: Int)
