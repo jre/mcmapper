@@ -1,5 +1,8 @@
 if ('devServer' in config) {
     config.devServer.proxy = {
-	"/data": "http://mcmapper-data-host/path"
+        "/data": {
+            target: "https://mcmapper-data-host/path",
+            changeOrigin: true
+        }
     }
 }
