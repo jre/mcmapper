@@ -1,6 +1,8 @@
 package net.joshe.mcmapper
 
 import java.io.File
+import kotlin.io.path.name
+import kotlin.io.path.toPath
 import kotlin.system.exitProcess
 
 /*
@@ -9,11 +11,20 @@ import kotlin.system.exitProcess
   don't rewrite files if they didn't change
  */
 
+fun usage() {
+    val jar = MainKludge.getMainClass().protectionDomain.codeSource.location.toURI().toPath().name
+    System.err.println("usage: ${jar} convert-map JSON-PATH OUTPUT-PATH")
+    exitProcess(1)
+}
+
 fun main(args: Array<String>) {
-    if (args.size != 2) {
-        System.err.println("usage: /path/to/json-config /path/to/output-directory")
-        exitProcess(1)
+    when (args.getOrNull(0)) {
+        "convert-map" -> {
+            if (args.size != 3)
+                usage()
+            println("reading config from ${args[1]} and writing data to ${args[2]}")
+            convertAllWorlds(readWorldsConf(File(args[1]).absoluteFile), File(args[2]).absoluteFile)
+        }
+        else -> usage()
     }
-    println("reading config from ${args[0]} and writing data to ${args[1]}")
-    convertAllWorlds(readWorldsConf(File(args[0]).absoluteFile), File(args[1]).absoluteFile)
 }

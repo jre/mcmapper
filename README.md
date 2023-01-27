@@ -30,7 +30,7 @@ the resulting JSON and PNG data into the web root. If your web root
 is, for example, `/var/www/html/` then you might want to copy the webapp
 into `/var/www/html/mc/` and the map data into `/var/www/html/mc/data/`
 
-`java -jar mcmapper-backend.jar /path/to/my/worlds.json /var/www/html/mc/data/`
+`java -jar mcmapper-backend.jar convert-map /path/to/my/worlds.json /var/www/html/mc/data/`
 
 ### To develop the webapp
 
