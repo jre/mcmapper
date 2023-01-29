@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.*
 import io.ktor.http.*
 import kotlinx.coroutines.launch
 import net.joshe.mcmapper.data.MapState
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 import org.jetbrains.skia.Image as SkiaImage
 
 /*

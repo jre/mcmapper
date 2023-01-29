@@ -3,7 +3,7 @@ package net.joshe.mcmapper.ui
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.unit.dp
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 enum class BannerColor(val key: String, val color: Color) {
     WHITE("white", Color(255, 255, 255)),

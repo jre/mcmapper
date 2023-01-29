@@ -9,18 +9,11 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":mapdata"))
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.nullicorn.nedit)
     implementation(libs.ktor.client.core)
     testImplementation(kotlin("test"))
-}
-
-sourceSets {
-    val main by getting {
-        kotlin {
-            srcDirs("../shared/src/kotlin")
-        }
-    }
 }
 
 tasks.test {
@@ -43,7 +36,7 @@ tasks.withType<Jar> {
 }
 
 application {
-    mainClass.set("${group}.${rootProject.name}.MainKt")
+    mainClass.set("${group}.MainKt")
 }
 
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {

@@ -1,4 +1,4 @@
-package net.joshe.mcmapper.metadata
+package net.joshe.mcmapper.mapdata
 
 data class BaseColor(val r: Int, val g: Int, val b: Int, val a: Int = 0xff) {
     private val multipliers = arrayOf(0xb4, 0xdc, 0xff, 0x87)

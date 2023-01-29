@@ -29,9 +29,8 @@ kotlin {
     }
     sourceSets {
         val commonMain by getting {
-            kotlin.srcDirs("../shared/src/kotlin")
-
             dependencies {
+                implementation(project(":mapdata"))
                 implementation(compose.ui)
                 implementation(compose.foundation)
                 implementation(compose.runtime)
@@ -57,7 +56,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "${group}.${rootProject.name}.MainKt"
+        mainClass = "${group}.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "${rootProject.name}-desktop"

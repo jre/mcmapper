@@ -1,7 +1,7 @@
 @file:Suppress("DSL_SCOPE_VIOLATION") // XXX https://youtrack.jetbrains.com/issue/KTIJ-19369
 
 subprojects {
-    group = "net.joshe"
+    group = "net.joshe.mcmapper"
     version = "0.1"
 }
 

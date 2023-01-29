@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.unit.dp
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 fun RouteNode.getImage() = when (this) {
     is StopNode -> getImage()

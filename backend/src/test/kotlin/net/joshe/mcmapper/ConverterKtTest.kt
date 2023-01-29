@@ -1,7 +1,7 @@
 package net.joshe.mcmapper
 
-import net.joshe.mcmapper.metadata.TilePos
-import net.joshe.mcmapper.metadata.WorldPos
+import net.joshe.mcmapper.mapdata.TilePos
+import net.joshe.mcmapper.mapdata.WorldPos
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

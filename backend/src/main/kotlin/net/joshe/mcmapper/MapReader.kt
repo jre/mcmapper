@@ -5,7 +5,7 @@ import java.io.File
 import java.io.FileInputStream
 import me.nullicorn.nedit.NBTReader
 import me.nullicorn.nedit.type.NBTCompound
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 fun File.lastModifiedGMTDate() = GMTDate(timestamp = lastModified())
 

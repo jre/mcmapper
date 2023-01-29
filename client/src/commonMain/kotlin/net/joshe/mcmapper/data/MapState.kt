@@ -2,7 +2,7 @@ package net.joshe.mcmapper.data
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 class MapState(baseUrl: String) {
     private val client = if (Client.isUrlValid(baseUrl)) Client(baseUrl) else null

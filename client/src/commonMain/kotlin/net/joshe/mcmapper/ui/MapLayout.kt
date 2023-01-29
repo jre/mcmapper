@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 fun MapMetadata.mapSize(/*routes: RoutesMetadata?*/) : DpSize {
     val base = DpSize(

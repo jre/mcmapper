@@ -4,7 +4,7 @@ import java.io.File
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 fun readWorldsConf(path: File) : AllWorldsConf {
     val basePath = path.parentFile

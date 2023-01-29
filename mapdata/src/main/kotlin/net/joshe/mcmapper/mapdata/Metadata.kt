@@ -1,4 +1,4 @@
-package net.joshe.mcmapper.metadata
+package net.joshe.mcmapper.mapdata
 
 import io.ktor.util.date.*
 import kotlin.math.max

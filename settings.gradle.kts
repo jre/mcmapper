@@ -9,13 +9,13 @@ dependencyResolutionManagement {
     }
 }
 
-// XXX to work around intellij limitations, you will need to
-// comment-out either the backend or client include to open this in
-// the ide
-
-include("backend")
+include("backend", "mapdata")
 
 System.getProperty("os.name")?.let { os ->
-    if (os == "Linux" || os == "Mac OS X" || os.startsWith("Windows "))
+    if (os == "Linux" || os == "Mac OS X" || os.startsWith("Windows ")) {
         include("client")
+        rootProject.children.find { it.name == "mapdata" }?.let { mapdata ->
+            mapdata.buildFileName = "build-kmp.gradle.kts"
+        }
+    }
 }

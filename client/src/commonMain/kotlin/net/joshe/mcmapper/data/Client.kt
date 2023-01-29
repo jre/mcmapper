@@ -11,7 +11,7 @@ import io.ktor.http.*
 import io.ktor.util.date.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 class Client(url: String) {
     companion object {

@@ -1,4 +1,4 @@
-package net.joshe.mcmapper.metadata
+package net.joshe.mcmapper.mapdata
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

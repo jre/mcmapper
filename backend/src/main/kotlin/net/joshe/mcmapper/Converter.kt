@@ -11,7 +11,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import net.joshe.mcmapper.metadata.*
+import net.joshe.mcmapper.mapdata.*
 
 fun getRootMetaFile(rootDir: File)
         = File(rootDir, WorldPaths.getRootMetadataPath().joinToString(File.separator))
