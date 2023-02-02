@@ -1,9 +1,10 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
+@Suppress("DSL_SCOPE_VIOLATION") // XXX https://youtrack.jetbrains.com/issue/KTIJ-19369
 plugins {
-    kotlin("multiplatform").version(libs.versions.kotlin.get())
-    id("org.jetbrains.compose").version(libs.versions.compose.get())
-    kotlin("plugin.serialization").version(libs.versions.kotlinx.serialization.get())
+    id(libs.plugins.kotlin.multiplatform.get().pluginId)
+    alias(libs.plugins.compose)
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 kotlin {

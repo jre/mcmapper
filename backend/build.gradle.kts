@@ -1,10 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+@Suppress("DSL_SCOPE_VIOLATION") // XXX https://youtrack.jetbrains.com/issue/KTIJ-19369
 plugins {
-    kotlin("jvm").version(libs.versions.kotlin.get())
-    kotlin("plugin.serialization").version(libs.versions.kotlinx.serialization.get())
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlinx.serialization)
     application
-    id("com.github.johnrengelman.shadow").version(libs.versions.johnrengelman.shadow.get())
+    alias(libs.plugins.johnrengelman.shadow)
 }
 
 dependencies {
