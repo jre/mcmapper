@@ -67,6 +67,11 @@ sealed class Position : Comparable<Position> {
 @Serializable
 @SerialName("tile")
 data class TilePos(override val x: Int, override val z: Int) : Position() {
+    fun toWorldPosTopLeft(map: MapMetadata) = WorldPos(
+        x = x * map.tileSize - mapTileOffset,
+        z = z * map.tileSize - mapTileOffset
+    )
+
     operator fun rangeTo(that: TilePos) = TilePosProgression(that, this)
 
     class TilePosIterator(private val start: TilePos, private val endInclusive: TilePos) : Iterator<TilePos> {
@@ -101,7 +106,9 @@ data class WorldPos(override val x: Int, override val z: Int) : Position()
 
 @Serializable
 @SerialName("nether")
-data class NetherPos(override val x: Int, override val z: Int) : Position()
+data class NetherPos(override val x: Int, override val z: Int) : Position() {
+    fun toWorldPos() = WorldPos(x = x * 8, z = z * 8)
+}
 
 @Serializable
 sealed class Icon { abstract val pos: Position }
@@ -133,14 +140,31 @@ data class MapMetadata(
     val label: String,
     val scale: Int,
     val dimension: String,
-    val minPos: TilePos,
-    val maxPos: TilePos,
+    val minPos: TilePos, // XXX rename to minTilePos next metadata bump
+    val maxPos: TilePos, // XXX rename to maxTilePos next metadata bump
     val showRoutes: Boolean = false,
     @Serializable(with = TileMapListSerializer::class)
     val tiles: Map<TilePos, TileMetadata>,
 ) {
     val scaleFactor = scaleFactor(scale)
     val tileSize = scaleFactor * mapTilePixels
+
+    private var _routes: RoutesMetadata? = null
+    fun saveRoutes(routes: RoutesMetadata) { _routes = routes }
+
+    val minVisibleWorldPos: WorldPos get() {
+        val tile = minPos.toWorldPosTopLeft(this)
+        val node = _routes?.minPos?.toWorldPos()
+        return if (node == null) WorldPos(tile.x, tile.z)
+        else WorldPos(x = min(tile.x, node.x), z = min(tile.z, node.z))
+    }
+
+    val maxVisibleWorldPos: WorldPos get() {
+        val tile = TilePos(maxPos.x + 1, maxPos.z + 1).toWorldPosTopLeft(this)
+        val node = _routes?.maxPos?.toWorldPos()
+        return if (node == null) WorldPos(tile.x, tile.z)
+        else WorldPos(x = max(tile.x, node.x), z = max(tile.z, node.z))
+    }
 }
 
 @Serializable
@@ -184,6 +208,10 @@ data class WorldMetadata(
     init {
         require(version == worldMetaVersion)
         require(defaultMap in maps)
+        maps.values.forEach { map ->
+            if (map.showRoutes)
+                map.saveRoutes(routes)
+        }
     }
 }
 

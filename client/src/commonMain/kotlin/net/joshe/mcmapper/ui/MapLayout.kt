@@ -29,8 +29,6 @@ data class MapLayoutPos(val x: Int, val y: Int)
 
 private fun to0Based(value: Int, min: Int) = value - min
 
-fun NetherPos.toWorldPos() = WorldPos(x = x * 8, z = z * 8)
-
 fun TilePos.toMapLayoutPos(map: MapMetadata) = MapLayoutPos(
         x = to0Based(x, map.minPos.x) * mapTilePixels - mapTileOffset / map.scaleFactor,
         y = to0Based(z, map.minPos.z) * mapTilePixels - mapTileOffset / map.scaleFactor)
