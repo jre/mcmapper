@@ -55,11 +55,45 @@ fun dimensionalPosition(dimension: String, x: Int, z: Int) =
 fun scaleFactor(scale: Int) = 2.0.pow(scale).toInt()
 
 @Serializable
-sealed class Position { abstract val x: Int; abstract val z: Int }
+sealed class Position : Comparable<Position> {
+    abstract val x: Int
+    abstract val z: Int
+
+    override fun compareTo(other: Position) = x.compareTo(other.x).let { cmp ->
+        if (cmp != 0) cmp else z.compareTo(other.z)
+    }
+}
 
 @Serializable
 @SerialName("tile")
-data class TilePos(override val x: Int, override val z: Int) : Position()
+data class TilePos(override val x: Int, override val z: Int) : Position() {
+    operator fun rangeTo(that: TilePos) = TilePosProgression(that, this)
+
+    class TilePosIterator(private val start: TilePos, private val endInclusive: TilePos) : Iterator<TilePos> {
+        private var started = false
+        private var currentX = start.x
+        private var currentZ = start.z
+
+        override fun hasNext() = !started || (currentX <= endInclusive.x && currentZ <= endInclusive.z)
+
+        override fun next(): TilePos {
+            if (!started)
+                started = true
+            else if (currentX < endInclusive.x)
+                currentX++
+            else {
+                currentX = start.x
+                currentZ++
+            }
+            return TilePos(currentX, currentZ)
+        }
+    }
+
+    class TilePosProgression(override val endInclusive: TilePos, override val start: TilePos)
+        : Iterable<TilePos>, ClosedRange<TilePos> {
+        override fun iterator() = TilePosIterator(start, endInclusive)
+    }
+}
 
 @Serializable
 @SerialName("world")
