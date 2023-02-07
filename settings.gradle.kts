@@ -9,7 +9,7 @@ dependencyResolutionManagement {
     }
 }
 
-include("backend", "mapdata", "kmpclient")
+include("backend", "desktop", "mapdata", "kmpclient")
 
 System.getProperty("os.name")?.let { os ->
     if (os == "Linux" || os == "Mac OS X" || os.startsWith("Windows ")) {

@@ -4,11 +4,14 @@ ktor = "2.2.3"
 ktx-serialization = "1.4.0"
 
 [libraries]
+formdev-flatlaf = "com.formdev:flatlaf:3.0"
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "ktx-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "ktx-serialization" }
+kotlinx-coroutines-swing = "org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.6.4"
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+slf4j-simple = "org.slf4j:slf4j-simple:1.6.1"
 nullicorn-nedit = "me.nullicorn:Nedit:2.2.0"
 
 [plugins]
