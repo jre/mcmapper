@@ -54,7 +54,7 @@ private fun readTileMetadata(id: Int, tag: NBTCompound, nbtModified: GMTDate, pn
             val label = banner.getString("Name", "")
             if (x != null && z != null && color != null)
                 icons.add(BannerIcon(dimensionalPosition(dimension, x = x.toInt(), z = z.toInt()),
-                    color = color, label = label))
+                    color = BannerColor.fromString(color)!!, label = label))
         }
     }
 

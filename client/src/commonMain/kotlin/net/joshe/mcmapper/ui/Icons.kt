@@ -5,29 +5,7 @@ import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.unit.dp
 import net.joshe.mcmapper.mapdata.*
 
-enum class BannerColor(val key: String, val color: Color) {
-    WHITE("white", Color(255, 255, 255)),
-    ORANGE("orange", Color(216, 127, 51)),
-    MAGENTA("magenta", Color(178, 76, 216)),
-    LIGHTBLUE("light_blue", Color(102, 153, 216)),
-    YELLOW("yellow", Color(229, 229, 51)),
-    LIME("lime", Color(127, 204, 25)),
-    PINK("pink", Color(242, 127, 165)),
-    GRAY("gray", Color(76, 76, 76)),
-    LIGHTGRAY("light_gray", Color(153, 153, 153)),
-    CYAN("cyan", Color(76, 127, 153)),
-    PURPLE("purple", Color(127, 63, 178)),
-    BLUE("blue", Color(51, 76, 178)),
-    BROWN("brown", Color(102, 76, 51)),
-    GREEN("green", Color(102, 127, 51)),
-    RED("red", Color(153, 51, 51)),
-    BLACK("black", Color(25, 25, 25)),
-    ;
-
-    companion object {
-        fun fromString(name: String) = BannerColor.values().find { it.key == name } ?: WHITE
-    }
-}
+val BannerColor.color get() = Color(r, g, b)
 
 fun Icon.getImage() = when (this) {
     is PointerIcon -> getImage()
@@ -55,7 +33,7 @@ fun PointerIcon.getImage(iconSize: Float = 10f) = ImageVector.Builder(
 }.build()
 
 fun BannerIcon.getImage(iconSize: Float = 10f): ImageVector {
-    val fillColor = BannerColor.fromString(color).color
+    val fillColor = color.color
     val topWidth = iconSize * 0.875f
     val bannerWidth = iconSize * .375f
     val bannerHeight = iconSize

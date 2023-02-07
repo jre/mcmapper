@@ -25,6 +25,30 @@ object WorldPaths {
     fun getRootMetadataPath() = listOf("metadata.json")
 }
 
+enum class BannerColor(val key: String, val r: Int, val g: Int, val b: Int) {
+    WHITE("white", 255, 255, 255),
+    ORANGE("orange", 216, 127, 51),
+    MAGENTA("magenta", 178, 76, 216),
+    LIGHTBLUE("light_blue", 102, 153, 216),
+    YELLOW("yellow", 229, 229, 51),
+    LIME("lime", 127, 204, 25),
+    PINK("pink", 242, 127, 165),
+    GRAY("gray", 76, 76, 76),
+    LIGHTGRAY("light_gray", 153, 153, 153),
+    CYAN("cyan", 76, 127, 153),
+    PURPLE("purple", 127, 63, 178),
+    BLUE("blue", 51, 76, 178),
+    BROWN("brown", 102, 76, 51),
+    GREEN("green", 102, 127, 51),
+    RED("red", 153, 51, 51),
+    BLACK("black", 25, 25, 25),
+    ;
+
+    companion object {
+        fun fromString(name: String) = BannerColor.values().find { it.key == name }
+    }
+}
+
 fun dimensionalPosition(dimension: String, x: Int, z: Int) =
     if (dimension == "minecraft:the_nether") NetherPos(x, z) else WorldPos(x, z)
 
@@ -50,7 +74,10 @@ sealed class Icon { abstract val pos: Position }
 
 @Serializable
 @SerialName("banner")
-data class BannerIcon(override val pos: Position, val color: String, val label: String) : Icon()
+data class BannerIcon(
+    override val pos: Position,
+    @Serializable(with = BannerColorAsStringSerializer::class) val color: BannerColor,
+    val label: String) : Icon()
 
 @Serializable
 @SerialName("pointer")
@@ -167,4 +194,12 @@ object GMTDateAsLongSerializer : KSerializer<GMTDate> {
 
     override fun serialize(encoder: Encoder, value: GMTDate) =
         encoder.encodeLong(value.timestamp)
+}
+
+object BannerColorAsStringSerializer : KSerializer<BannerColor> {
+    override val descriptor = PrimitiveSerialDescriptor("BannerColor", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder) = BannerColor.fromString(decoder.decodeString())!!
+
+    override fun serialize(encoder: Encoder, value: BannerColor) = encoder.encodeString(value.key)
 }
