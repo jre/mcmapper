@@ -9,13 +9,13 @@ dependencyResolutionManagement {
     }
 }
 
-include("backend", "mapdata")
+include("backend", "mapdata", "kmpclient")
 
 System.getProperty("os.name")?.let { os ->
     if (os == "Linux" || os == "Mac OS X" || os.startsWith("Windows ")) {
         include("client")
-        rootProject.children.find { it.name == "mapdata" }?.let { mapdata ->
-            mapdata.buildFileName = "build-kmp.gradle.kts"
-        }
+        for (p in rootProject.children)
+            if (p.name == "mapdata" || p.name == "kmpclient")
+                p.buildFileName = "build-kmp.gradle.kts"
     }
 }
