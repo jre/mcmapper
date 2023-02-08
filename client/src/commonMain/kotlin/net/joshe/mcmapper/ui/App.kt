@@ -265,30 +265,27 @@ fun MapGrid(
         routes = if (mapMeta.showRoutes && options.routes.value) worldMeta.routes else null,
         modifier = Modifier.offset { pos.toIntOffset() },
     ) {
-        for (z in mapMeta.minPos.z .. mapMeta.maxPos.z) {
-            for (x in mapMeta.minPos.x ..mapMeta.maxPos.x) {
-                mapMeta.tiles[TilePos(x=x, z=z)]?.let { tile ->
-                    key(x, z) {
-                        MapTilePixmap(mapState = mapState, tile = tile,
-                            modifier = Modifier
-                                .tilePosition(TilePos(x, z))
-                                .pointerInput(Unit) {
-                                    detectDragGestures { change, dragAmount ->
-                                        change.consume()
-                                        pos += dragAmount
-                                    }
-                                })
-                    }
-                    if (options.tileIds.value)
-                        MapId(tile, Modifier.tileIdPosition(TilePos(x, z)))
-                    tile.icons.forEachIndexed { idx, icon ->
-                        key(x, z, idx) {
-                            MapIcon(icon, options = options, modifier = Modifier.iconPosition(icon))
-                        }
+        for (tilePos in mapMeta.minPos .. mapMeta.maxPos)
+            mapMeta.tiles[tilePos]?.let { tile ->
+                key(tilePos) {
+                    MapTilePixmap(mapState = mapState, tile = tile,
+                        modifier = Modifier
+                            .tilePosition(tilePos)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    pos += dragAmount
+                                }
+                            })
+                }
+                if (options.tileIds.value)
+                    MapId(tile, Modifier.tileIdPosition(tilePos))
+                tile.icons.forEachIndexed { idx, icon ->
+                    key(tilePos, idx) {
+                        MapIcon(icon, options = options, modifier = Modifier.iconPosition(icon))
                     }
                 }
             }
-        }
         if (mapMeta.showRoutes && options.routes.value) {
             for (node in worldMeta.routes.nodes.values)
             //if (NetherPos(node.x, node.z).toMapLayoutPos(mapMeta).let { it.x >= 0 && it.y >= 0 })
