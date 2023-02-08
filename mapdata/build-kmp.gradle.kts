@@ -18,7 +18,7 @@ kotlin {
     }
     sourceSets {
         val commonMain by getting {
-	    kotlin.srcDirs("src/main")
+	    kotlin.srcDirs("src/main/kotlin")
             dependencies {
                 api(libs.kotlinx.serialization.json)
                 api(libs.ktor.client.core)
