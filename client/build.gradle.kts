@@ -31,6 +31,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(project(":mapdata"))
+                implementation(project(":kmpclient"))
                 implementation(compose.ui)
                 implementation(compose.foundation)
                 implementation(compose.runtime)

@@ -15,7 +15,6 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.*
 import io.ktor.http.*
 import kotlinx.coroutines.launch
-import net.joshe.mcmapper.data.MapState
 import net.joshe.mcmapper.mapdata.*
 import org.jetbrains.skia.Image as SkiaImage
 
@@ -72,14 +71,10 @@ fun App(rootUrl: String,
         windowSizeState: State<DpSize>,
         options: DisplayOptions,
 ) {
-    val baseUrl = rootUrl.removeSuffix("/") + "/data"
-    val mapState = remember(baseUrl) { MapState(baseUrl) }
+    val mapState = rememberMapState(rootUrl)
     val scaffoldState = rememberScaffoldState()
     val menuSheetState = rememberMenuSheetState()
     val scope = rememberCoroutineScope()
-
-    if (mapState.worldInfo.value.isEmpty())
-        scope.launch { mapState.loadRootData() }
 
     MaterialTheme(colors = if (options.darkMode.value == true) darkColors() else lightColors()) {
         MenuSheetLayout(state = menuSheetState) {
@@ -94,7 +89,7 @@ fun App(rootUrl: String,
                         ShowPointersButton(options)
                         ShowRoutesButton(options.routes)
                         OutlinedButton(onClick = { mapState.currentWorld.value?.worldId?.let {
-                            scope.launch { mapState.reloadWorldCache(it) }
+                            scope.launch { mapState.clientData.reloadWorldCache(it) }
                         }}) { Text(text = "Reload") }
                     }
                 }) {
@@ -110,7 +105,7 @@ fun App(rootUrl: String,
 // https://stackoverflow.com/questions/67744381/jetpack-compose-scaffold-modal-bottom-sheet
 
 @Composable
-fun WorldSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
+fun WorldSelectionButton(menuSheetState: MenuSheetState, mapState: RememberedMapState) {
     val scope = rememberCoroutineScope()
     MenuSheetButton(
         state = menuSheetState,
@@ -118,12 +113,12 @@ fun WorldSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
         selectedKey = mapState.currentWorld.value?.worldId,
         noneSelected = "Select a world",
         onSelect = { selection ->
-            scope.launch { mapState.selectWorld(selection) }
+            scope.launch { mapState.clientData.selectWorld(selection) }
         })
 }
 
 @Composable
-fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
+fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: RememberedMapState) {
     val scope = rememberCoroutineScope()
     MenuSheetButton(
         state = menuSheetState,
@@ -132,7 +127,7 @@ fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: MapState) {
         selectedKey = mapState.currentMap.value?.mapId,
         noneSelected = "Select a map",
         onSelect = { selection ->
-            scope.launch { mapState.selectMap(selection) }
+            scope.launch { mapState.clientData.selectMap(selection) }
         })
 }
 
@@ -174,7 +169,7 @@ fun ShowRoutesButton(state: MutableState<Boolean>) {
 }
 
 @Composable
-fun MapTilePixmap(mapState: MapState, tile: TileMetadata, modifier: Modifier = Modifier) {
+fun MapTilePixmap(mapState: RememberedMapState, tile: TileMetadata, modifier: Modifier = Modifier) {
     var pixmap: ByteArray? by remember(mapState.currentWorld.value, tile) { mutableStateOf(null) }
     val mod = modifier.requiredSize(width = mapTilePixels.dp, height = mapTilePixels.dp)
 
@@ -188,7 +183,7 @@ fun MapTilePixmap(mapState: MapState, tile: TileMetadata, modifier: Modifier = M
             contentDescription = "${tile.id}",
             painter = ColorPainter(color = Color.Transparent),
             modifier = mod)
-        LaunchedEffect(mapState.currentWorld) { pixmap = mapState.loadTilePixmap(tile) }
+        LaunchedEffect(mapState.currentWorld) { pixmap = mapState.clientData.loadTilePixmap(tile) }
     }
 }
 
@@ -249,7 +244,7 @@ fun DpOffset.toIntOffset() = IntOffset(x.value.toInt(), y.value.toInt())
 
 @Composable
 fun MapGrid(
-    mapState: MapState,
+    mapState: RememberedMapState,
     options: DisplayOptions,
     windowSizeState: State<DpSize>,
 ) {
