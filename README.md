@@ -9,7 +9,8 @@ Prebuild development snapshots of the
 [backend tool](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-backend.zip)
 and
 [web client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-web.zip)
-are available.
+are available. There is also a
+[desktop client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-desktop.zip).
 
 ### To build the backend tool
 
