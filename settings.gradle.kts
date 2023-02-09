@@ -13,7 +13,7 @@ include("backend", "desktop", "mapdata", "kmpclient")
 
 System.getProperty("os.name")?.let { os ->
     if (os == "Linux" || os == "Mac OS X" || os.startsWith("Windows ")) {
-        include("client")
+        include("compose")
         for (p in rootProject.children)
             if (p.name == "mapdata" || p.name == "kmpclient")
                 p.buildFileName = "build-kmp.gradle.kts"

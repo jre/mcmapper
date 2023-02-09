@@ -5,4 +5,4 @@ build
 /mcmapper-desktop.jar
 /kotlin-js-store/
 /js/
-/client/webpack.config.d/proxy.js
+/compose/webpack.config.d/proxy.js
