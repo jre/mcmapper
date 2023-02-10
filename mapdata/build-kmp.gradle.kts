@@ -3,11 +3,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 @Suppress("DSL_SCOPE_VIOLATION") // XXX https://youtrack.jetbrains.com/issue/KTIJ-19369
 plugins {
     id(libs.plugins.kotlin.multiplatform.get().pluginId)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlinx.serialization)
-    `java-library`
 }
 
 kotlin {
+    android()
     js(IR) {
 	browser()
     }
@@ -28,6 +29,19 @@ kotlin {
                 implementation(kotlin("test"))
             }
         }
+    }
+}
+
+android {
+    compileSdk = (project.property("androidCompileSDK") as String).toInt()
+    namespace = "${group}.mapdata"
+    defaultConfig {
+        minSdk = (project.property("androidMinSDK") as String).toInt()
+        targetSdk = (project.property("androidTargetSDK") as String).toInt()
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 

@@ -6,3 +6,4 @@ build
 /kotlin-js-store/
 /js/
 /compose/js/webpack.config.d/proxy.js
+/local.properties
