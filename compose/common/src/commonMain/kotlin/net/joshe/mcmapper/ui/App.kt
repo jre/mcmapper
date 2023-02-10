@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.*
 import io.ktor.http.*
 import kotlinx.coroutines.launch
 import net.joshe.mcmapper.mapdata.*
-import org.jetbrains.skia.Image as SkiaImage
 
 /*
 https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary#overview
@@ -173,17 +172,19 @@ fun MapTilePixmap(mapState: RememberedMapState, tile: TileMetadata, modifier: Mo
     var pixmap: ByteArray? by remember(mapState.currentWorld.value, tile) { mutableStateOf(null) }
     val mod = modifier.requiredSize(width = mapTilePixels.dp, height = mapTilePixels.dp)
 
-    if (pixmap != null)
-        Image(
-            contentDescription = "${tile.id}",
-            bitmap = SkiaImage.makeFromEncoded(pixmap!!).toComposeImageBitmap(),
-            modifier = mod)
-    else {
-        Image(
-            contentDescription = "${tile.id}",
-            painter = ColorPainter(color = Color.Transparent),
-            modifier = mod)
-        LaunchedEffect(mapState.currentWorld) { pixmap = mapState.clientData.loadTilePixmap(tile) }
+    pixmap.let { pixmapBytes ->
+        if (pixmapBytes != null)
+            Image(
+                contentDescription = "${tile.id}",
+                bitmap = pixmapBytes.decodeToImageBitmap(),
+                modifier = mod)
+        else {
+            Image(
+                contentDescription = "${tile.id}",
+                painter = ColorPainter(color = Color.Transparent),
+                modifier = mod)
+            LaunchedEffect(mapState.currentWorld) { pixmap = mapState.clientData.loadTilePixmap(tile) }
+        }
     }
 }
 
