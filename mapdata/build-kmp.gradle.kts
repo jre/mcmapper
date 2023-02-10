@@ -21,7 +21,11 @@ kotlin {
             dependencies {
                 api(libs.kotlinx.serialization.json)
                 api(libs.ktor.client.core)
-                //testImplementation(kotlin("test"))
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
     }
@@ -35,10 +39,6 @@ configurations {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
         }
     }
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
 
 tasks.withType<KotlinCompile> {
