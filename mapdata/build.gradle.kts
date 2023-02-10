@@ -13,6 +13,15 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+sourceSets {
+    val main by getting {
+        kotlin.srcDirs("src/commonMain/kotlin")
+    }
+    val test by getting {
+        kotlin.srcDirs("src/commonTest/kotlin")
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
