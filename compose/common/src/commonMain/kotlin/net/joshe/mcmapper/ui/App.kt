@@ -83,10 +83,7 @@ fun App(rootUrl: String,
                     BottomAppBar {
                         WorldSelectionButton(menuSheetState, mapState)
                         MapSelectionButton(menuSheetState, mapState)
-                        DarkModeButton(options.darkMode)
-                        ShowTileIdsButton(options.tileIds)
-                        ShowPointersButton(options)
-                        ShowRoutesButton(options.routes)
+                        OptionsButton(menuSheetState, options)
                         OutlinedButton(onClick = { mapState.currentWorld.value?.worldId?.let {
                             scope.launch { mapState.clientData.reloadWorldCache(it) }
                         }}) { Text(text = "Reload") }
@@ -106,64 +103,66 @@ fun App(rootUrl: String,
 @Composable
 fun WorldSelectionButton(menuSheetState: MenuSheetState, mapState: RememberedMapState) {
     val scope = rememberCoroutineScope()
-    MenuSheetButton(
-        state = menuSheetState,
-        items = mapState.worldInfo.value.entries.sortedBy{it.value.label}.map{Pair(it.key,it.value.label)},
-        selectedKey = mapState.currentWorld.value?.worldId,
-        noneSelected = "Select a world",
-        onSelect = { selection ->
-            scope.launch { mapState.clientData.selectWorld(selection) }
-        })
+    val items = mapState.worldInfo.value.entries.sortedBy { it.value.label }
+
+    MenuSheetButton(state = menuSheetState, text = "World") {
+        if (items.isEmpty())
+            Text(text = "No worlds loaded")
+        else for ((itemId, item) in items)
+            key(itemId) {
+                MenuSheetRadioItem(state = menuSheetState,
+                    selected = itemId == mapState.currentWorld.value?.worldId,
+                    onClick = { scope.launch { mapState.clientData.selectWorld(itemId) } }
+                ) {
+                    Text(item.label)
+                }
+            }
+    }
 }
 
 @Composable
 fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: RememberedMapState) {
     val scope = rememberCoroutineScope()
-    MenuSheetButton(
-        state = menuSheetState,
-        items = mapState.currentWorld.value?.maps?.entries?.sortedBy { it.value.label }?.map { Pair(it.key, it.value.label) }
-            ?: emptyList(),
-        selectedKey = mapState.currentMap.value?.mapId,
-        noneSelected = "Select a map",
-        onSelect = { selection ->
-            scope.launch { mapState.clientData.selectMap(selection) }
-        })
-}
+    val items = mapState.currentWorld.value?.maps?.entries?.sortedBy { it.value.label }
 
-@Composable
-fun DarkModeButton(darkMode: MutableState<Boolean?>) {
-    println("drawing dark mode button with state ${darkMode.value}")
-    OutlinedButton(
-        onClick = {
-                println("clicked dark mode ${darkMode.value} -> ${darkMode.value != true}")
-                darkMode.value = darkMode.value != true
-        },
-    ) {
-        Text(text = if (darkMode.value == true) "Dark mode" else "Light mode")
+    MenuSheetButton(state = menuSheetState, text = "Maps") {
+        if (items.isNullOrEmpty())
+            Text(text = "No maps loaded")
+        else for ((itemId, item) in items)
+            key(itemId) {
+                MenuSheetRadioItem(state = menuSheetState,
+                    selected = itemId == mapState.currentMap.value?.mapId,
+                    onClick = { scope.launch { mapState.clientData.selectMap(itemId) } }
+                ) {
+                    Text(item.label)
+                }
+            }
     }
 }
 
 @Composable
-fun ShowTileIdsButton(state: MutableState<Boolean>) {
-    OutlinedButton(onClick = { state.value = !state.value }) {
-        Text(text = if (state.value) "Hide Map IDs" else "Show Map IDs")
-    }
-}
-
-@Composable
-fun ShowPointersButton(options: DisplayOptions) {
-    OutlinedButton(onClick = {
-        options.banners.value = !options.pointers.value
-        options.pointers.value = options.banners.value
-    }) {
-        Text(text = if (options.pointers.value) "Hide Pointers" else "Show Pointers")
-    }
-}
-
-@Composable
-fun ShowRoutesButton(state: MutableState<Boolean>) {
-    OutlinedButton(onClick = { state.value = !state.value }) {
-        Text(text = if (state.value) "Hide Routes" else "Show Routes")
+fun OptionsButton(menuSheetState: MenuSheetState, opts: DisplayOptions) {
+    MenuSheetButton(state = menuSheetState, text = "Options") {
+        MenuSheetCheckItem(state = menuSheetState, selected = opts.darkMode.value == true,
+            onChange = { value -> opts.darkMode.value = value }) {
+            Text("Dark mode")
+        }
+        MenuSheetCheckItem(state = menuSheetState, selected = opts.tileIds.value,
+            onChange = { value -> opts.tileIds.value = value }) {
+            Text("Show map IDs")
+        }
+        MenuSheetCheckItem(state = menuSheetState, selected = opts.pointers.value,
+            onChange = { value -> opts.pointers.value = value }) {
+            Text("Show pointers")
+        }
+        MenuSheetCheckItem(state = menuSheetState, selected = opts.banners.value,
+            onChange = { value -> opts.banners.value = value }) {
+            Text("Show banners")
+        }
+        MenuSheetCheckItem(state = menuSheetState, selected = opts.routes.value,
+            onChange = { value -> opts.routes.value = value }) {
+            Text("Show routes")
+        }
     }
 }
 
