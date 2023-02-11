@@ -2,14 +2,25 @@
 
 package net.joshe.mcmapper.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
@@ -92,5 +103,65 @@ fun MenuSheetCheckItem(state: MenuSheetState, selected: Boolean, onChange: (Bool
     ) {
         Checkbox(checked = selected, onCheckedChange = null)
         content()
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun MenuSheetEditItem(menuSheetState: MenuSheetState,
+                      onDone: (String) -> Unit,
+                      initial: String = "",
+                      validate: (String) -> Boolean = {true},
+                      keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+                      label: @Composable (() -> Unit) = {},
+                      content: @Composable (RowScope.() -> Unit)) {
+    val scope = rememberCoroutineScope()
+    val focus = remember { FocusRequester() }
+    val isEditing = remember { mutableStateOf(false) }
+    val text = remember { mutableStateOf(TextFieldValue("")) }
+
+    val startEditing = {
+        isEditing.value = true
+        text.value = TextFieldValue(text = initial, selection = TextRange(initial.length))
+    }
+    val finishEditing = {
+        text.value.let { value ->
+            if (validate(value.text)) {
+                scope.launch { menuSheetState.hide() }
+                isEditing.value = false
+                onDone(value.text)
+            }
+        }
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().clickable(
+            role = Role.Button,
+            onClick = startEditing)) {
+        if (!isEditing.value)
+            OutlinedButton(onClick = startEditing, content = content)
+        else {
+            OutlinedTextField(
+                value = text.value,
+                label = label,
+                singleLine = true,
+                isError = !validate(text.value.text),
+                onValueChange = { text.value = it },
+                keyboardOptions = keyboardOptions,
+                keyboardActions = KeyboardActions(
+                    onDone = { finishEditing() },
+                    onGo = { finishEditing() },
+                    onNext = { finishEditing() },
+                    onPrevious = { finishEditing() },
+                    onSearch = { finishEditing() },
+                    onSend = { finishEditing() }),
+                modifier = Modifier.focusRequester(focus).onPreviewKeyEvent { event ->
+                    if (event.key == Key.Enter) {
+                        finishEditing()
+                        true
+                    } else false
+                })
+            LaunchedEffect(focus) { focus.requestFocus() }
+        }
     }
 }
