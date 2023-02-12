@@ -10,7 +10,9 @@ Prebuild development snapshots of the
 and
 [web client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-web.zip)
 are available. There is also a
-[desktop client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-desktop.zip).
+[desktop client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-desktop.zip)
+and an
+[android client](https://nightly.link/jre/mcmapper/workflows/build.yaml/master/mcmapper-android-debug.zip).
 
 ### To build the backend tool
 

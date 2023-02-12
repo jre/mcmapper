@@ -41,3 +41,8 @@ jobs:
         with:
           name: mcmapper-desktop
           path: mcmapper-desktop.jar
+      - name: Archive android apk artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: mcmapper-android-debug.apk
+          path: compose/android/build/outputs/apk/debug/mcmapper-debug.apk
