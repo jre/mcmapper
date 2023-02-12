@@ -3,6 +3,7 @@ package net.joshe.mcmapper.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,9 +13,12 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
 import io.ktor.http.*
 import kotlinx.coroutines.launch
+import net.joshe.mcmapper.common.Client
 import net.joshe.mcmapper.mapdata.*
 
 /*
@@ -58,6 +62,8 @@ worth trying a canvas? what existing element has a viewport?
  */
 
 data class DisplayOptions(
+    val mutableUrl: Boolean = true,
+    val rootUrl: MutableState<String>,
     val darkMode: MutableState<Boolean?>,
     val tileIds: MutableState<Boolean>,
     val pointers: MutableState<Boolean>,
@@ -66,11 +72,10 @@ data class DisplayOptions(
 )
 
 @Composable
-fun App(rootUrl: String,
-        windowSizeState: State<DpSize>,
+fun App(windowSizeState: State<DpSize>,
         options: DisplayOptions,
 ) {
-    val mapState = rememberMapState(rootUrl)
+    val mapState = rememberMapState(options.rootUrl)
     val scaffoldState = rememberScaffoldState()
     val menuSheetState = rememberMenuSheetState()
     val scope = rememberCoroutineScope()
@@ -83,7 +88,7 @@ fun App(rootUrl: String,
                     BottomAppBar {
                         WorldSelectionButton(menuSheetState, mapState)
                         MapSelectionButton(menuSheetState, mapState)
-                        OptionsButton(menuSheetState, options)
+                        OptionsButton(menuSheetState, mapState, options)
                         OutlinedButton(onClick = { mapState.currentWorld.value?.worldId?.let {
                             scope.launch { mapState.clientData.reloadWorldCache(it) }
                         }}) { Text(text = "Reload") }
@@ -141,8 +146,18 @@ fun MapSelectionButton(menuSheetState: MenuSheetState, mapState: RememberedMapSt
 }
 
 @Composable
-fun OptionsButton(menuSheetState: MenuSheetState, opts: DisplayOptions) {
+fun OptionsButton(menuSheetState: MenuSheetState, mapState: RememberedMapState, opts: DisplayOptions) {
     MenuSheetButton(state = menuSheetState, text = "Options") {
+        if (opts.mutableUrl)
+            MenuSheetEditItem(menuSheetState = menuSheetState,
+                initial = opts.rootUrl.value,
+                validate = { Client.isUrlValid(it) },
+                label = { Text(text = "Set URL") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
+                onDone = { value ->
+                    opts.rootUrl.value = value
+                    mapState.clientData.setUrl(value)
+                }) { Text(text = "Set URL") }
         MenuSheetCheckItem(state = menuSheetState, selected = opts.darkMode.value == true,
             onChange = { value -> opts.darkMode.value = value }) {
             Text("Dark mode")
@@ -252,7 +267,12 @@ fun MapGrid(
     val mapMeta = mapState.currentMap.value
     println("drawing map grid with world=${worldMeta?.worldId} map=${mapMeta?.mapId}")
     if (worldMeta == null || mapMeta == null) {
-        Text("No map loaded")
+        mapState.status.value.let { (status, desc) ->
+            if (desc.isEmpty())
+                Text(status.label)
+            else
+                Text("${status.label}: ${desc}")
+        }
         return
     }
     var pos by remember(worldMeta.worldId, mapMeta.mapId, windowSizeState.value) {

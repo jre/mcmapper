@@ -8,6 +8,7 @@ import java.util.prefs.Preferences
 fun clientPrefsNode() : Preferences = Preferences.userRoot().node("mcmapper/client")
 
 enum class PrefKeys(val key: String) {
+    URL("rootUrl"),
     DARK("darkMode"),
     SHOW_IDS("showTileIds"),
     SHOW_POINTERS("showPointerIcons"),

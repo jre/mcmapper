@@ -57,6 +57,8 @@ fun main() {
     val baseUrl = window.location.toString()
     val windowSize = mutableStateOf(DpSize(0.dp,0.dp))
     val options = DisplayOptions(
+        mutableUrl = false,
+        rootUrl = mutableStateOf(baseUrl),
         darkMode = mutableStateOf(PrefersColorScheme.prefersDark()),
         tileIds = mutableStateOf(false),
         pointers = mutableStateOf(true),
@@ -74,7 +76,7 @@ fun main() {
 
     onWasmReady {
         Window {
-            App(rootUrl = baseUrl, windowSizeState = windowSize, options = options)
+            App(windowSizeState = windowSize, options = options)
         }
     }
 }

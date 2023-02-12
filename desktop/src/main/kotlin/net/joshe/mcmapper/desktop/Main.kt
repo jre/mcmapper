@@ -18,6 +18,7 @@ import java.awt.event.ComponentEvent
 import java.util.prefs.Preferences
 
 data class MapDisplayOptions(
+    val rootUrl: MutableStateFlow<String>,
     val darkMode: MutableStateFlow<Boolean?>,
     val tileIds: MutableStateFlow<Boolean>,
     val pointers: MutableStateFlow<Boolean>,
@@ -43,17 +44,17 @@ fun JFrame.persistWindowSize(preferences: Preferences) =
 fun main(args: Array<String>) {
     val prefs = clientPrefsNode()
     val url = when (args.size) {
-        0 -> System.getenv("MCMAPPER_URL")
+        0 -> System.getenv("MCMAPPER_URL") ?: ""
         1 -> args[0]
-        else -> null
-    }
-    if (url == null || !Client.isUrlValid(url)) {
-        System.err.println("usage: http://mcmapper/url\nor set MCMAPPER_URL in the environment")
-        exitProcess(1)
+        else -> {
+            System.err.println("usage: http://mcmapper/url\nor set MCMAPPER_URL in the environment")
+            exitProcess(1)
+        }
     }
 
     val opts = CoroutineScope(Dispatchers.IO).let { scope ->
         MapDisplayOptions(
+            rootUrl = prefs.mutableStateFlowOf(scope, PrefKeys.URL.key, ""),
             // XXX it would be nice to query some os-specific api for light/dark theme here
             darkMode = prefs.mutableStateFlowOf(scope, PrefKeys.DARK.key, null),
             tileIds = prefs.mutableStateFlowOf(scope, PrefKeys.SHOW_IDS.key, false),
@@ -62,6 +63,8 @@ fun main(args: Array<String>) {
             routes = prefs.mutableStateFlowOf(scope, PrefKeys.SHOW_ROUTES.key, false),
         )
     }
+    if (url != opts.rootUrl.value && Client.isUrlValid(url))
+        opts.rootUrl.value = url
 
     if (opts.darkMode.value == true)
         FlatDarkLaf.setup()
@@ -77,7 +80,7 @@ fun main(args: Array<String>) {
     }
 
     SwingUtilities.invokeLater {
-        val win = MapperWindow(url, opts)
+        val win = MapperWindow(opts)
         win.restoreWindowSize(prefs)
         //win.pack()
         win.isVisible = true

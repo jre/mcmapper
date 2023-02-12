@@ -30,16 +30,16 @@ fun saveWindowSize(preferences: Preferences, size: DpSize) {
 fun main(args: Array<String>) {
     val prefs = clientPrefsNode()
     val url = when (args.size) {
-        0 -> System.getenv("MCMAPPER_URL")
+        0 -> System.getenv("MCMAPPER_URL") ?: ""
         1 -> args[0]
-        else -> null
-    }
-    if (url == null || !Client.isUrlValid(url)) {
-        System.err.println("usage: http://mcmapper/url\nor set MCMAPPER_URL in the environment")
-        exitProcess(1)
+        else -> {
+            System.err.println("usage: http://mcmapper/url\nor set MCMAPPER_URL in the environment")
+            exitProcess(1)
+        }
     }
 
     val options = DisplayOptions(
+        rootUrl = prefs.mutableStateOf(PrefKeys.URL.key, ""),
         // XXX it would be nice to query some os-specific api for light/dark theme here
         darkMode = prefs.mutableStateOf(PrefKeys.DARK.key, null),
         tileIds = prefs.mutableStateOf(PrefKeys.SHOW_IDS.key, false),
@@ -47,6 +47,8 @@ fun main(args: Array<String>) {
         banners = prefs.mutableStateOf(PrefKeys.SHOW_BANNERS.key, true),
         routes = prefs.mutableStateOf(PrefKeys.SHOW_ROUTES.key, false),
     )
+    if (url != options.rootUrl.value && Client.isUrlValid(url))
+        options.rootUrl.value = url
     val savedWindowSize = loadWindowSize(prefs)
     var windowSizeUsed = false
 
@@ -70,7 +72,7 @@ fun main(args: Array<String>) {
             },
             state = rootWindowState,
         ) {
-            App(rootUrl = url, windowSizeState = windowSize, options = options)
+            App(windowSizeState = windowSize, options = options)
         }
     }
 }

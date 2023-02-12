@@ -10,11 +10,13 @@ import kotlin.system.exitProcess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.joshe.mcmapper.common.Client
 import net.joshe.mcmapper.common.ClientData
+import net.joshe.mcmapper.common.ClientStatus
 
-class MapperWindow(baseUrl: String, opts: MapDisplayOptions) : JFrame("mcmapper") {
+class MapperWindow(opts: MapDisplayOptions) : JFrame("mcmapper") {
     private val scope = CoroutineScope(Dispatchers.Main)
-    private val clientData = ClientData(baseUrl)
+    private val clientData = ClientData(opts.rootUrl.value)
     private val worldsMenu = JMenu("Worlds")
     private val mapsMenu = JMenu("Maps")
     private val image = MapImage(clientData, opts)
@@ -56,6 +58,17 @@ class MapperWindow(baseUrl: String, opts: MapDisplayOptions) : JFrame("mcmapper"
             }
         }}
 
+        scope.launch { opts.rootUrl.collect { rootUrl ->
+            clientData.setUrl(rootUrl)
+            clientData.loadRootData()
+        }}
+
+        scope.launch { clientData.status.collect { (status, desc) ->
+            if (status == ClientStatus.ERROR)
+                JOptionPane.showMessageDialog(
+                    this@MapperWindow, desc, "Error", JOptionPane.ERROR_MESSAGE)
+        }}
+
         val scroll = JScrollPane(image, VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_AS_NEEDED)
 
         jMenuBar = JMenuBar()
@@ -71,6 +84,16 @@ class MapperWindow(baseUrl: String, opts: MapDisplayOptions) : JFrame("mcmapper"
     }
 
     private fun addOptionsMenu(opts: MapDisplayOptions, menu: JMenu) {
+        menu.add(JMenuItem("Set URL").also { item ->
+            item.addActionListener {
+                JOptionPane.showInputDialog(this, "Set URL", opts.rootUrl.value)?.let { url ->
+                    if (Client.isUrlValid(url))
+                        opts.rootUrl.value = url
+                    else
+                        JOptionPane.showMessageDialog(this, "Invalid URL: $url", "Error", JOptionPane.ERROR_MESSAGE)
+                }
+            }
+        })
         // XXX https://docs.oracle.com/javase/8/docs/api/javax/swing/UIManager.html
         menu.add(JCheckBoxMenuItem("Dark mode", opts.darkMode.value == true).also { item ->
             item.addItemListener { ev -> opts.darkMode.value = (ev.stateChange == SELECTED) }})
