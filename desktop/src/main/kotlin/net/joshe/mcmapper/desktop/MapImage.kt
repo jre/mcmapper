@@ -28,20 +28,25 @@ class MapImage(private val clientData: ClientData, private val opts: MapDisplayO
             clientData.currentMap.collect { map ->
                 images.clear()
                 cachedSize = null
-                if (map != null)
-                    for (pos in map.minPos..map.maxPos)
-                        map.tiles[pos]?.let { tile ->
-                            scope.launch {
-                                clientData.loadTilePixmap(tile)?.let { png ->
-                                    println("read tile ${pos.x},${pos.z} as ${png.size} byte png")
-                                    images[tile.pos] = ImageIO.read(ByteArrayInputStream(png))
-                                    repaint()
-                                }
-                            }
-                        }
-                revalidate()
-                repaint()
+                reloadTiles()
             }
+        }
+    }
+
+    fun reloadTiles() {
+        clientData.currentMap.value?.let { map ->
+            for (pos in map.minPos..map.maxPos)
+                map.tiles[pos]?.let { tile ->
+                    scope.launch {
+                        clientData.loadTilePixmap(tile)?.let { png ->
+                            println("read tile ${pos.x},${pos.z} as ${png.size} byte png")
+                            images[tile.pos] = ImageIO.read(ByteArrayInputStream(png))
+                            repaint()
+                        }
+                    }
+                }
+            revalidate()
+            repaint()
         }
     }
 

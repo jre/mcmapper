@@ -30,9 +30,10 @@ class MapperWindow(opts: MapDisplayOptions, ioDispatcher: CoroutineDispatcher) :
 
         val reloadItem = JMenuItem("Reload")
         reloadItem.accelerator = KeyStroke.getKeyStroke(KeyEvent.VK_R, modKey)
-        reloadItem.addActionListener {
-            scope.launch { clientData.reloadWorldCache(clientData.currentWorld.value?.worldId) }
-        }
+        reloadItem.addActionListener { scope.launch {
+            clientData.reloadWorldCache(clientData.currentWorld.value?.worldId)
+            image.reloadTiles()
+        }}
         mainMenu.add(reloadItem)
 
         val quitItem = JMenuItem("Quit")
