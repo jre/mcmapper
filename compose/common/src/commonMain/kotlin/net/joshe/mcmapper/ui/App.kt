@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -187,7 +188,9 @@ fun OptionsButton(menuSheetState: MenuSheetState, mapState: RememberedMapState, 
 @Composable
 fun MapTilePixmap(mapState: RememberedMapState, tile: TileMetadata, modifier: Modifier = Modifier) {
     var pixmap: ByteArray? by remember(mapState.currentWorld.value, tile) { mutableStateOf(null) }
-    val mod = modifier.requiredSize(width = mapTilePixels.dp, height = mapTilePixels.dp)
+    val mod = with(LocalDensity.current) {
+        modifier.requiredSize(width = mapTilePixels.toDp(), height = mapTilePixels.toDp())
+    }
 
     pixmap.let { pixmapBytes ->
         if (pixmapBytes != null)
@@ -278,8 +281,10 @@ fun MapGrid(
         }
         return
     }
-    var pos by remember(worldMeta.worldId, mapMeta.mapId, windowSizeState.value) {
-        mutableStateOf(windowSizeState.value.center - mapMeta.mapSize().center)
+    var pos by mapMeta.mapSize().let { mapSize ->
+        remember(worldMeta.worldId, mapMeta.mapId, windowSizeState.value) {
+            mutableStateOf(windowSizeState.value.center - mapSize.center)
+        }
     }
 
     // XXX if I put the pointerInput modifier here then it stops working after I switch maps and back
