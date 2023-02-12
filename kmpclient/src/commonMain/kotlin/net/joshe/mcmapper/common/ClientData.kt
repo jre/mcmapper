@@ -1,6 +1,9 @@
 package net.joshe.mcmapper.common
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.withContext
 import net.joshe.mcmapper.mapdata.*
 
 enum class ClientStatus(val label: String) {
@@ -10,7 +13,7 @@ enum class ClientStatus(val label: String) {
     ERROR("Error")
 }
 
-class ClientData(rootUrl: String) {
+class ClientData(rootUrl: String, private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default) {
     private var client: Client? = null
     private var lastUrl = ""
 
@@ -41,7 +44,7 @@ class ClientData(rootUrl: String) {
         var result: T? = null
         _status.value = Pair(ClientStatus.LOADING, desc)
         try {
-            result = func()
+            result = withContext(ioDispatcher) { func() }
             _status.value = Pair(ClientStatus.READY, "")
         } catch (e: Throwable) {
             _status.value = Pair(ClientStatus.ERROR, e.toString())

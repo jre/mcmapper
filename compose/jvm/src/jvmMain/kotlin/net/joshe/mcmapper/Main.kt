@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import net.joshe.mcmapper.common.*
 import net.joshe.mcmapper.ui.App
@@ -72,7 +73,7 @@ fun main(args: Array<String>) {
             },
             state = rootWindowState,
         ) {
-            App(windowSizeState = windowSize, options = options)
+            App(windowSizeState = windowSize, options = options, ioDispatcher = Dispatchers.IO)
         }
     }
 }

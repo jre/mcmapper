@@ -80,7 +80,7 @@ fun main(args: Array<String>) {
     }
 
     SwingUtilities.invokeLater {
-        val win = MapperWindow(opts)
+        val win = MapperWindow(opts, Dispatchers.IO)
         win.restoreWindowSize(prefs)
         //win.pack()
         win.isVisible = true

@@ -17,6 +17,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.*
 import io.ktor.http.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.joshe.mcmapper.common.Client
 import net.joshe.mcmapper.mapdata.*
@@ -74,8 +76,9 @@ data class DisplayOptions(
 @Composable
 fun App(windowSizeState: State<DpSize>,
         options: DisplayOptions,
+        ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
-    val mapState = rememberMapState(options.rootUrl)
+    val mapState = rememberMapState(options.rootUrl, ioDispatcher)
     val scaffoldState = rememberScaffoldState()
     val menuSheetState = rememberMenuSheetState()
     val scope = rememberCoroutineScope()

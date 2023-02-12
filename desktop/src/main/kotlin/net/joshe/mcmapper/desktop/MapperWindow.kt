@@ -1,5 +1,6 @@
 package net.joshe.mcmapper.desktop
 
+import kotlinx.coroutines.CoroutineDispatcher
 import java.awt.*
 import java.awt.event.ItemEvent.SELECTED
 import java.awt.event.KeyEvent
@@ -14,9 +15,9 @@ import net.joshe.mcmapper.common.Client
 import net.joshe.mcmapper.common.ClientData
 import net.joshe.mcmapper.common.ClientStatus
 
-class MapperWindow(opts: MapDisplayOptions) : JFrame("mcmapper") {
+class MapperWindow(opts: MapDisplayOptions, ioDispatcher: CoroutineDispatcher) : JFrame("mcmapper") {
     private val scope = CoroutineScope(Dispatchers.Main)
-    private val clientData = ClientData(opts.rootUrl.value)
+    private val clientData = ClientData(opts.rootUrl.value, ioDispatcher = ioDispatcher)
     private val worldsMenu = JMenu("Worlds")
     private val mapsMenu = JMenu("Maps")
     private val image = MapImage(clientData, opts)

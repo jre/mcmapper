@@ -1,6 +1,7 @@
 package net.joshe.mcmapper.ui
 
 import androidx.compose.runtime.*
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import net.joshe.mcmapper.common.ClientData
 import net.joshe.mcmapper.common.ClientStatus
@@ -17,9 +18,9 @@ class RememberedMapState(
 )
 
 @Composable
-fun rememberMapState(rootUrl: MutableState<String>) : RememberedMapState {
+fun rememberMapState(rootUrl: MutableState<String>, ioDispatcher: CoroutineDispatcher) : RememberedMapState {
     val scope = rememberCoroutineScope()
-    val clientData = ClientData(rootUrl.value)
+    val clientData = ClientData(rootUrl.value, ioDispatcher)
     val state = RememberedMapState(
         clientData = clientData,
         status = clientData.status.collectAsState(scope.coroutineContext),
