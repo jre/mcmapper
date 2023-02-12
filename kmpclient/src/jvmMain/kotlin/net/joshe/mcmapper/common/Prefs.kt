@@ -7,17 +7,6 @@ import java.util.prefs.Preferences
 
 fun clientPrefsNode() : Preferences = Preferences.userRoot().node("mcmapper/client")
 
-enum class PrefKeys(val key: String) {
-    URL("rootUrl"),
-    DARK("darkMode"),
-    SHOW_IDS("showTileIds"),
-    SHOW_POINTERS("showPointerIcons"),
-    SHOW_BANNERS("showBannerIcons"),
-    SHOW_ROUTES("showRoutes"),
-    WINDOW_WIDTH("windowWidth"),
-    WINDOW_HEIGHT("windowHeight"),
-}
-
 inline fun <reified T> Preferences.getGeneric(key: String, default: T) : T {
     if (get(key, null) == null)
         return default
